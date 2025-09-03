@@ -46,11 +46,12 @@ class SaktiController extends Controller
             return redirect()->route('login')->withErrors(['sakti' => 'Failed to get access token']);
         }
         Session::put('sakti_access_token', $token['access_token']);
-        // Example: get user info
-        $user = $this->apiRequest($this->apiURLBase . 'user', [], $token['access_token']);
-        // TODO: Integrate user info with your app's user system
-        // For now, just show user info
-        return response()->json($user);
+    // Example: get user info
+    $user = $this->apiRequest($this->apiURLBase . 'user', [], $token['access_token']);
+    // TODO: Integrate user info with your app's user system
+    // For now, just redirect to dashboard
+    // You can store user info in session or database here
+    return redirect()->route('dashboard');
     }
 
     private function apiRequest($url, $post = [], $accessToken = null)
