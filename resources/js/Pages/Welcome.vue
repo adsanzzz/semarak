@@ -174,7 +174,7 @@ const produkList = [
                     <img
                         src="/images/marketplace.png"
                         alt="Marketplace"
-                        class="w-60 h-60 mx-auto"
+                        class="w-100 h-70 mx-auto"
                     />
                 </div>
             </div>
@@ -807,10 +807,13 @@ const produkList = [
 <style scoped>
 .line-clamp-2 {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 2; /* untuk browser WebKit */
     -webkit-box-orient: vertical;
     overflow: hidden;
+
+    line-clamp: 2; /* properti standar */
 }
+
 
 /* ✅ Mobile menu aktif */
 #navMenu.mobile-active {
