@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { Link } from "@inertiajs/vue3";
+import { Link, usePage } from "@inertiajs/vue3";
 
 // Import Heroicons
 import {
@@ -13,6 +13,7 @@ import {
 
 const isOpen = ref(true);
 
+// Data menu
 const menus = [
   { name: "Dashboard", icon: HomeIcon, route: "/dashboard" },
   { name: "Produk", icon: ShoppingBagIcon, route: "/products" },
@@ -20,23 +21,34 @@ const menus = [
   { name: "Toko Saya", icon: Cog6ToothIcon, route: "/toko" },
   { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
 ];
+
+// Untuk deteksi route aktif
+const page = usePage();
+const currentUrl = page.url; // URL saat ini
 </script>
 
 <template>
   <aside
     :class="[
-      'h-screen bg-gradient-to-b from-indigo-600 to-purple-800 text-white flex flex-col transition-all duration-300 shadow-2xl',
+      'h-screen bg-white text-black flex flex-col transition-all duration-300 shadow-2xl',
       isOpen ? 'w-64' : 'w-20'
     ]"
   >
     <!-- Logo / Header -->
     <div class="flex items-center justify-between px-4 py-5 border-b border-white/20">
-      <h1
-        v-show="isOpen"
-        class="text-2xl font-bold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-pink-300 to-yellow-300 whitespace-nowrap"
-      >
-        SEMARAK
-      </h1>
+      <div v-show="isOpen" class="flex items-center space-x-2">
+        <img
+          src="/images/Logomark.png"
+          alt="Logo Semarak"
+          class="w-8 h-8 object-contain"
+        />
+
+        <!-- Teks SEMARAK -->
+        <h1 class="text-2xl font-bold tracking-wide text-[#0A3551] whitespace-nowrap font-sans">
+          Semarak
+        </h1>
+      </div>
+
       <button
         class="p-2 rounded-full hover:bg-white/20 transition cursor-pointer"
         @click="isOpen = !isOpen"
@@ -52,11 +64,17 @@ const menus = [
         v-for="menu in menus"
         :key="menu.name"
         :href="menu.route"
-        class="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group hover:bg-white/20"
+        :class="[
+          'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group',
+          currentUrl.startsWith(menu.route) 
+            ? 'bg-yellow-300 text-white' 
+            : 'hover:bg-yellow-100'
+        ]"
       >
         <component
           :is="menu.icon"
-          class="w-6 h-6 group-hover:text-yellow-300 transition-colors"
+          class="w-6 h-6 transition-colors"
+          :class="currentUrl.startsWith(menu.route) ? 'text-white' : 'text-black group-hover:text-yellow-600'"
         />
         <span
           v-show="isOpen"
