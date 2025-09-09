@@ -8,7 +8,8 @@ class Product extends Model
 {
     use HasFactory;
     protected $fillable = [
-        'user_id', 'nama', 'harga', 'stok', 'kategori', 'deskripsi', 'image', 'terjual'
+        'user_id', 'nama', 'harga', 'stok', 'kategori', 'deskripsi', 'image', 'terjual',
+        'warna', 'ukuran', 'berat'
     ];
     public function user() {
         return $this->belongsTo(User::class);

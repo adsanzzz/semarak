@@ -136,7 +136,7 @@ const produkList = [
                         Login
                     </a>
                     <a
-                        href="/register"
+                        href="/register-type"
                         class="bg-accent text-black px-4 py-2 rounded-md hover:bg-blue-600"
                     >
                         Register

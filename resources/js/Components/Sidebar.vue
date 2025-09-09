@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { Link, usePage } from "@inertiajs/vue3";
 
 // Import Heroicons
@@ -17,29 +17,56 @@ import {
 const isOpen = ref(true);
 const openSubmenu = ref(null); // track submenu terbuka
 
-// Data menu
-const menus = [
-  { name: "Dashboard", icon: HomeIcon, route: "/dashboard" },
-  { name: "Kelola Produk", icon: ShoppingBagIcon, route: "/products" },
-  { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: "/pesanan" },
-  {
-    name: "Pengaduan & Komplain",
-    icon: StarIcon,
-    route: "/pengaduan",
-    children: [
-      { name: "Daftar Pengaduan", route: "/pengaduan/submenu" },
-      { name: "Live Chat", route: "/pengaduan/chat" },
-      { name: "Daftar Komplain", route: "/pengaduan/komplain" },
-    ],
-  },
-  { name: "Kelola Promo", icon: TicketIcon, route: "/promo" },
-  { name: "Toko Saya", icon: Cog6ToothIcon, route: "/toko" },
-  { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
-];
+// Hanya tampil jika user toko
+const page = usePage();
+
+// Data menu dinamis sesuai role
+const menus = computed(() => {
+  if (user.value.role === 3) {
+    // Buyer
+    return [
+      { name: "Dashboard", icon: HomeIcon, route: "/dashboard" },
+      { name: "Keranjang Saya", icon: ShoppingBagIcon, route: "/keranjang" },
+      { name: "Pesanan Saya", icon: ShoppingBagIcon, route: "/user.pesanan" },
+      {
+        name: "Pengaduan & Komplain",
+        icon: StarIcon,
+        route: "/pengaduan",
+        children: [
+          { name: "Daftar Pengaduan", route: "/pengaduan/submenu" },
+          { name: "Live Chat", route: "/pengaduan/chat" },
+          { name: "Daftar Komplain", route: "/pengaduan/komplain" },
+        ],
+      },
+      // Tidak ada Kelola Promo
+      { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
+    ];
+  } else {
+    // Toko/admin
+    return [
+      { name: "Dashboard", icon: HomeIcon, route: "/dashboard" },
+      { name: "Kelola Produk", icon: ShoppingBagIcon, route: route('user.products') },
+      { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: "/pesanan" },
+      {
+        name: "Pengaduan & Komplain",
+        icon: StarIcon,
+        route: "/pengaduan",
+        children: [
+          { name: "Daftar Pengaduan", route: "/pengaduan/submenu" },
+          { name: "Live Chat", route: "/pengaduan/chat" },
+          { name: "Daftar Komplain", route: "/pengaduan/komplain" },
+        ],
+      },
+      { name: "Kelola Promo", icon: TicketIcon, route: "/promo" },
+      { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
+    ];
+  }
+});
 
 // Deteksi route aktif
-const page = usePage();
 const currentUrl = page.url;
+const user = computed(() => page.props.auth?.user || {});
+const isToko = computed(() => user.value.role === 2);
 
 // Toggle submenu
 const toggleSubmenu = (name) => {
@@ -77,7 +104,7 @@ const toggleSubmenu = (name) => {
 
     <!-- Menu -->
     <nav class="flex-1 px-2 py-4 space-y-2 overflow-y-auto">
-      <div v-for="menu in menus" :key="menu.name">
+  <div v-for="menu in menus" :key="menu.name">
         <!-- Jika punya submenu -->
         <div
           v-if="menu.children"

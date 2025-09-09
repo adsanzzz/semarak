@@ -33,14 +33,14 @@ class ProductController extends Controller
             'deskripsi' => $request->deskripsi,
             'image' => $imagePath,
         ]);
-        return redirect()->route('user.toko');
+    return redirect()->route('user.products');
     }
 
     public function destroy($id)
     {
         $product = Product::where('user_id', Auth::id())->findOrFail($id);
         $product->delete();
-        return redirect()->route('user.toko');
+    return redirect()->route('user.products');
     }
 
     public function index()

@@ -13,18 +13,18 @@ use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
-class RegisteredUserController extends Controller
+class RegisterTokoController extends Controller
 {
     /**
-     * Display the registration view.
+     * Display the store registration view.
      */
     public function create(): Response
     {
-        return Inertia::render('Auth/Register');
+        return Inertia::render('Auth/RegisterToko');
     }
 
     /**
-     * Handle an incoming registration request.
+     * Handle an incoming store registration request.
      *
      * @throws \Illuminate\Validation\ValidationException
      */
@@ -32,7 +32,10 @@ class RegisteredUserController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
+            'email' => 'required|string|lowercase|email|max:255|unique:users',
+            'phone' => 'required|string|max:20',
+            'nama_toko' => 'required|string|max:255',
+            'alamat_toko' => 'required|string|max:255',
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
@@ -40,8 +43,12 @@ class RegisteredUserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => 3, // 3 = buyer
+            'role' => 2, // 2 = user_toko
+            // Optionally, you can add phone, nama_toko, alamat_toko to the users table if needed
         ]);
+
+        // Optionally, save toko info to a separate table if you have one
+        // Toko::create([...])
 
         event(new Registered($user));
 
