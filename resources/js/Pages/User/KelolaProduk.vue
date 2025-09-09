@@ -9,20 +9,17 @@ const props = defineProps({
   categories: Array,
 })
 
-/* 🔔 Notifikasi (toast) */
+/* 🔔 Notifikasi */
 const notif = ref(null)
 function showNotif(message, type = 'success') {
-  // type bisa: success | error | info
   notif.value = { message, type }
-  setTimeout(() => { notif.value = null }, 3000)
+  setTimeout(() => (notif.value = null), 3000)
 }
 
 /* ➕ Tambah Produk */
 const showForm = ref(false)
 const form = useForm({
   nama: '', harga: '', stok: '', kategori: '', deskripsi: '', image: null,
-  warna: '', ukuran: '', berat: '',
-  opsiWarna: false, opsiUkuran: false, opsiBerat: false
 })
 
 function tambahProduk() {
@@ -33,15 +30,12 @@ function tambahProduk() {
   data.append('kategori', form.kategori)
   data.append('deskripsi', form.deskripsi)
   if (form.image) data.append('image', form.image)
-  if (form.opsiWarna) data.append('warna', form.warna)
-  if (form.opsiUkuran) data.append('ukuran', form.ukuran)
-  if (form.opsiBerat) data.append('berat', form.berat)
 
   router.post(route('user.toko.store'), data, {
     forceFormData: true,
     onSuccess: () => {
       form.reset()
-      showForm.value = false             // ⬅️ tutup form
+      showForm.value = false
       showNotif('✅ Produk berhasil ditambahkan', 'success')
       router.reload({ only: ['products'] })
     },
@@ -51,73 +45,17 @@ function tambahProduk() {
   })
 }
 
-/* ✏️ Inline Edit Produk */
+/* ✏️ Edit Produk */
 const editingId = ref(null)
-const editRow = useForm({
-  id: null, nama: '', harga: '', stok: '', kategori: '', deskripsi: '', image: null,
-  warna: '', ukuran: '', berat: '',
-  opsiWarna: false, opsiUkuran: false, opsiBerat: false
-})
-
 function startEditRow(produk) {
   editingId.value = produk.id
-  editRow.id = produk.id
-  editRow.nama = produk.nama ?? ''
-  editRow.harga = produk.harga ?? 0
-  editRow.stok = produk.stok ?? 0
-  editRow.kategori = produk.kategori ?? ''
-  editRow.deskripsi = produk.deskripsi ?? ''
-  editRow.image = null
-  editRow.opsiWarna = !!produk.warna
-  editRow.opsiUkuran = !!produk.ukuran
-  editRow.opsiBerat = !!produk.berat
-  editRow.warna = produk.warna || ''
-  editRow.ukuran = produk.ukuran || ''
-  editRow.berat = produk.berat || ''
 }
-
-function cancelEditRow() {
-  editingId.value = null
-  editRow.reset()
-}
-
-function saveEditRow() {
-  const data = new FormData()
-  data.append('nama', editRow.nama)
-  data.append('harga', editRow.harga)
-  data.append('stok', editRow.stok)
-  data.append('kategori', editRow.kategori)
-  data.append('deskripsi', editRow.deskripsi)
-  if (editRow.image) data.append('image', editRow.image)
-  if (editRow.opsiWarna) data.append('warna', editRow.warna)
-  if (editRow.opsiUkuran) data.append('ukuran', editRow.ukuran)
-  if (editRow.opsiBerat) data.append('berat', editRow.berat)
-  data.append('_method', 'PUT')
-
-  router.post(route('user.toko.update', editRow.id), data, {
-    forceFormData: true,
-    onSuccess: () => {
-      editingId.value = null
-      editRow.reset()
-      showNotif('✅ Produk berhasil diperbarui', 'success')
-      router.reload({ only: ['products'] })
-    },
-    onError: () => {
-      showNotif('⚠️ Gagal memperbarui produk', 'error')
-    }
-  })
-}
-
-/* 🗑️ Hapus Produk */
 function hapusProduk(id) {
   if (!confirm('Yakin ingin menghapus produk ini?')) return
   router.delete(route('user.toko.destroy', id), {
     onSuccess: () => {
       showNotif('🗑️ Produk berhasil dihapus', 'success')
       router.reload({ only: ['products'] })
-    },
-    onError: () => {
-      showNotif('⚠️ Gagal menghapus produk', 'error')
     }
   })
 }
@@ -135,8 +73,7 @@ function hapusProduk(id) {
       <Sidebar class="fixed left-0 top-0 h-screen" />
 
       <div class="flex-1 ml-64 bg-gray-100 min-h-screen p-8">
-
-        <!-- 🔔 Toast Notifikasi -->
+        <!-- 🔔 Notifikasi -->
         <transition name="fade">
           <div
             v-if="notif"
@@ -151,165 +88,96 @@ function hapusProduk(id) {
           </div>
         </transition>
 
-        <!-- Header + Tambah Produk -->
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="text-xl font-bold">Daftar Produk Saya</h3>
-          <button
-            @click="showForm = !showForm"
-            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
-            + Tambah Produk
-          </button>
+        <!-- 🆕 Tabel Produk Modern -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <!-- Header + Search -->
+          <div class="flex flex-col md:flex-row justify-between items-center mb-6 gap-3">
+            <h3 class="text-lg font-semibold text-gray-800">Daftar Produk</h3>
+            <div class="flex items-center gap-3 w-full md:w-auto">
+              <button
+                @click="showForm = !showForm"
+                class="flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                <span class="mr-1">Tambah Produk</span>
+                <span class="text-xl leading-none">＋</span>
+              </button>
+
+              <div class="relative">
+                <input
+                  type="text"
+                  placeholder="Cari produk.."
+                  class="border rounded-lg pl-10 pr-3 py-2 text-sm w-60 focus:ring focus:ring-blue-200"
+                />
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 absolute left-3 top-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m0 0A7.5 7.5 0 1110.5 3a7.5 7.5 0 016.15 13.65z" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabel -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left border-t border-gray-200">
+              <thead class="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
+                <tr>
+                  <!-- Kolom gambar dengan panah di header -->
+                  <th class="px-4 py-3 w-16 text-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </th>
+                  <th class="px-4 py-3">Nama Produk</th>
+                  <th class="px-4 py-3">Penjual</th>
+                  <th class="px-4 py-3">Harga (Rp)</th>
+                  <th class="px-4 py-3">Sisa Stok</th>
+                  <th class="px-4 py-3">Kategori</th>
+                  <th class="px-4 py-3 text-center">Aksi</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr v-for="produk in products" :key="produk.id" class="hover:bg-gray-50">
+                  <!-- gambar produk -->
+                  <td class="px-4 py-3 text-center">
+                    <img
+                      :src="produk.image_url || 'https://via.placeholder.com/40'"
+                      alt="produk"
+                      class="w-10 h-10 rounded object-cover border mx-auto"
+                    />
+                  </td>
+                  <!-- nama produk -->
+                  <td class="px-4 py-3 text-gray-800 font-medium">
+                    {{ produk.nama }}
+                  </td>
+                  <td class="px-4 py-3">{{ produk.penjual ?? 'Toko XYZ' }}</td>
+                  <td class="px-4 py-3">{{ Number(produk.harga).toLocaleString('id-ID') }}</td>
+                  <td class="px-4 py-3">{{ produk.stok }}</td>
+                  <td class="px-4 py-3">{{ produk.kategori }}</td>
+                  <td class="px-4 py-3 text-center flex items-center justify-center gap-3">
+                    <button @click="startEditRow(produk)" class="text-gray-500 hover:text-blue-600" title="Edit">✏️</button>
+                    <button @click="hapusProduk(produk.id)" class="text-red-500 hover:text-red-700" title="Hapus">🗑️</button>
+                  </td>
+                </tr>
+                <tr v-if="products.length === 0">
+                  <td colspan="7" class="text-center py-6 text-gray-500">Belum ada produk</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="flex justify-between items-center mt-4 text-sm text-gray-600">
+            <span>Menampilkan 1-10 dari {{ products.length }} Hasil</span>
+            <div class="flex items-center gap-2">
+              <button class="px-3 py-1 border rounded text-gray-600 hover:bg-gray-100">&lt;</button>
+              <button class="px-3 py-1 border rounded bg-blue-600 text-white">1</button>
+              <button class="px-3 py-1 border rounded text-gray-600 hover:bg-gray-100">2</button>
+              <span class="px-2">...</span>
+              <button class="px-3 py-1 border rounded text-gray-600 hover:bg-gray-100">24</button>
+              <button class="px-3 py-1 border rounded text-gray-600 hover:bg-gray-100">&gt;</button>
+            </div>
+          </div>
         </div>
-
-        <!-- Form Tambah Produk -->
-        <div v-if="showForm" class="mb-8 bg-gray-50 p-6 rounded-lg border border-blue-200 shadow">
-          <form @submit.prevent="tambahProduk" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label class="block text-gray-700 mb-1">Nama Produk</label>
-              <input v-model="form.nama" type="text" class="border rounded px-3 py-2 w-full" required />
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-1">Harga</label>
-              <input v-model="form.harga" type="number" min="0" class="border rounded px-3 py-2 w-full" required />
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-1">Stok</label>
-              <input v-model="form.stok" type="number" min="0" class="border rounded px-3 py-2 w-full" required />
-            </div>
-            <div>
-              <label class="block text-gray-700 mb-1">Kategori</label>
-              <select v-model="form.kategori" class="border rounded px-3 py-2 w-full" required>
-                <option value="" disabled>Pilih Kategori</option>
-                <option v-for="kat in categories" :key="kat.id" :value="kat.name">{{ kat.name }}</option>
-              </select>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-gray-700 mb-1">Deskripsi</label>
-              <textarea v-model="form.deskripsi" rows="3" class="border rounded px-3 py-2 w-full"></textarea>
-            </div>
-            <div class="md:col-span-2">
-              <label class="block text-gray-700 mb-1">Upload Gambar</label>
-              <input type="file" accept="image/*" @change="e => form.image = e.target.files[0]" class="border rounded px-3 py-2 w-full" />
-            </div>
-            <!-- Opsi tambahan -->
-            <div class="md:col-span-2 flex gap-6 items-center mt-2">
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="form.opsiWarna" /> Opsi Warna
-              </label>
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="form.opsiUkuran" /> Opsi Ukuran
-              </label>
-              <label class="flex items-center gap-2">
-                <input type="checkbox" v-model="form.opsiBerat" /> Opsi Berat
-              </label>
-            </div>
-            <div v-if="form.opsiWarna" class="md:col-span-2">
-              <label class="block text-gray-700 mb-1">Warna</label>
-              <input v-model="form.warna" type="text" class="border rounded px-3 py-2 w-full" placeholder="Contoh: Merah, Biru, Hitam" />
-            </div>
-            <div v-if="form.opsiUkuran" class="md:col-span-2">
-              <label class="block text-gray-700 mb-1">Ukuran</label>
-              <input v-model="form.ukuran" type="text" class="border rounded px-3 py-2 w-full" placeholder="Contoh: S, M, L, XL" />
-            </div>
-            <div v-if="form.opsiBerat" class="md:col-span-2">
-              <label class="block text-gray-700 mb-1">Berat (gram)</label>
-              <input v-model="form.berat" type="text" class="border rounded px-3 py-2 w-full" placeholder="Contoh: 500" />
-            </div>
-            <div class="md:col-span-2 flex justify-end gap-2">
-              <button type="button" @click="showForm = false" class="bg-gray-300 text-gray-700 px-4 py-2 rounded">Batal</button>
-              <button type="submit" class="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700">Simpan</button>
-            </div>
-          </form>
-        </div>
-
-        <!-- Tabel Produk -->
-        <div class="overflow-x-auto">
-          <table class="w-full border border-gray-200 text-sm">
-            <thead class="bg-gray-100 text-gray-700">
-              <tr>
-                <th class="px-4 py-2 border">#</th>
-                <th class="px-4 py-2 border">Nama</th>
-                <th class="px-4 py-2 border">Harga</th>
-                <th class="px-4 py-2 border">Stok</th>
-                <th class="px-4 py-2 border">Kategori</th>
-                <th class="px-4 py-2 border">Terjual</th>
-                <th class="px-4 py-2 border">Aksi</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(produk, index) in products" :key="produk.id" class="text-center align-top">
-                <td class="px-4 py-2 border">{{ index + 1 }}</td>
-
-                <!-- Mode Edit -->
-                <template v-if="editingId === produk.id">
-                  <td class="px-4 py-2 border">
-                    <input v-model="editRow.nama" type="text" class="border rounded px-2 py-1 w-full" required />
-                  </td>
-                  <td class="px-4 py-2 border">
-                    <input v-model="editRow.harga" type="number" min="0" class="border rounded px-2 py-1 w-full" required />
-                  </td>
-                  <td class="px-4 py-2 border">
-                    <input v-model="editRow.stok" type="number" min="0" class="border rounded px-2 py-1 w-full" required />
-                  </td>
-                  <td class="px-4 py-2 border">
-                    <select v-model="editRow.kategori" class="border rounded px-2 py-1 w-full" required>
-                      <option value="" disabled>Pilih Kategori</option>
-                      <option v-for="kat in categories" :key="kat.id" :value="kat.name">{{ kat.name }}</option>
-                    </select>
-                  </td>
-                  <td class="px-4 py-2 border">{{ produk.terjual ?? 0 }}</td>
-                  <td class="px-4 py-2 border">
-                    <div class="flex flex-col gap-2">
-                      <input type="file" accept="image/*" @change="e => editRow.image = e.target.files[0]" class="border rounded px-2 py-1 w-full" />
-                      <textarea v-model="editRow.deskripsi" rows="2" class="border rounded px-2 py-1 w-full" placeholder="Deskripsi (opsional)"></textarea>
-
-                      <div class="grid grid-cols-1 gap-2 text-left">
-                        <label class="flex items-center gap-2">
-                          <input type="checkbox" v-model="editRow.opsiWarna" /> Opsi Warna
-                        </label>
-                        <input v-if="editRow.opsiWarna" v-model="editRow.warna" type="text" class="border rounded px-2 py-1 w-full" placeholder="Contoh: Merah, Biru, Hitam" />
-
-                        <label class="flex items-center gap-2">
-                          <input type="checkbox" v-model="editRow.opsiUkuran" /> Opsi Ukuran
-                        </label>
-                        <input v-if="editRow.opsiUkuran" v-model="editRow.ukuran" type="text" class="border rounded px-2 py-1 w-full" placeholder="Contoh: S, M, L, XL" />
-
-                        <label class="flex items-center gap-2">
-                          <input type="checkbox" v-model="editRow.opsiBerat" /> Opsi Berat
-                        </label>
-                        <input v-if="editRow.opsiBerat" v-model="editRow.berat" type="text" class="border rounded px-2 py-1 w-full" placeholder="Contoh: 500" />
-                      </div>
-
-                      <div class="flex gap-2 justify-center">
-                        <button @click="saveEditRow" class="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700">Simpan</button>
-                        <button @click="cancelEditRow" class="bg-gray-400 text-white px-3 py-1 rounded text-xs hover:bg-gray-500">Batal</button>
-                      </div>
-                    </div>
-                  </td>
-                </template>
-
-                <!-- Mode Tampil -->
-                <template v-else>
-                  <td class="px-4 py-2 border text-left">{{ produk.nama }}</td>
-                  <td class="px-4 py-2 border">Rp{{ Number(produk.harga ?? 0).toLocaleString('id-ID') }}</td>
-                  <td class="px-4 py-2 border">{{ produk.stok }}</td>
-                  <td class="px-4 py-2 border">{{ produk.kategori }}</td>
-                  <td class="px-4 py-2 border">{{ produk.terjual ?? 0 }}</td>
-                  <td class="px-4 py-2 border">
-                    <button @click="startEditRow(produk)" class="bg-yellow-500 text-white px-3 py-1 rounded text-xs mr-2 hover:bg-yellow-600">Edit</button>
-                    <button @click="hapusProduk(produk.id)" class="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700">Hapus</button>
-                  </td>
-                </template>
-              </tr>
-
-              <tr v-if="products.length === 0">
-                <td colspan="7" class="text-center py-4 text-gray-500">Belum ada produk</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
       </div>
     </div>
   </AuthenticatedLayout>
