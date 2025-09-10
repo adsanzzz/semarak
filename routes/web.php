@@ -88,6 +88,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ],
         ]);
     })->name('user.orders');
+
+    // Lihat Semua Produk
+    Route::get('/lihat-produk', function () {
+        return Inertia::render('User/LihatProduk');
+    })->name('lihat-produk');
+    
 });
 
 /*

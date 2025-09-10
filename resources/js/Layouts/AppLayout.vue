@@ -1,7 +1,7 @@
 <template>
   <div class="min-h-screen flex flex-col">
-    <!-- Navbar khusus guest -->
-    <NavbarGuest />
+    <!-- Navbar khusus user login -->
+    <NavbarAuth />
 
     <!-- Konten halaman -->
     <main class="flex-1">
@@ -16,5 +16,5 @@
 </template>
 
 <script setup>
-import NavbarGuest from "@/Components/NavbarGuest.vue"
+import NavbarAuth from "@/Components/NavbarAuth.vue"
 </script>
