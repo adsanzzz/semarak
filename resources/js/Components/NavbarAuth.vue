@@ -44,24 +44,31 @@
         </div>
 
         <!-- Ikon -->
-        <ShoppingCartIcon
-          class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer"
-        />
-        <BellIcon
-          class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer"
-        />
-        <ChatBubbleOvalLeftEllipsisIcon
-          class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer"
-        />
-        <UserIcon
-          class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer"
-        />
+        <ShoppingCartIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+        <BellIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+        <ChatBubbleOvalLeftEllipsisIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+
+        <!-- User Dropdown -->
+        <div class="relative">
+          <button @click="toggleDropdown" class="focus:outline-none">
+            <UserIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+          </button>
+          <div v-if="showDropdown" class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border z-50">
+            <div class="px-4 py-3 border-b">
+              <div class="font-semibold text-gray-800">{{ user.name }}</div>
+              <div class="text-sm text-gray-500">{{ user.email }}</div>
+            </div>
+            <button @click="logout" class="w-full text-left px-4 py-3 text-red-600 hover:bg-gray-100">Logout</button>
+          </div>
+        </div>
       </div>
     </div>
   </header>
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { router, usePage } from '@inertiajs/vue3'
 import {
   ShoppingCartIcon,
   BellIcon,
@@ -74,4 +81,14 @@ const menus = [
   { name: "Produk", route: "/produk" },
   { name: "Transaksi", route: "/transaksi" },
 ]
+
+const showDropdown = ref(false)
+const page = usePage()
+const user = page.props.auth.user
+function logout() {
+  router.post(route('logout'))
+}
+function toggleDropdown() {
+  showDropdown.value = !showDropdown.value
+}
 </script>
