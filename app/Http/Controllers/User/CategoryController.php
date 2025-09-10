@@ -10,13 +10,12 @@ use App\Http\Controllers\Controller;
 class CategoryController extends Controller
 {
     public function index()
-    {
-        $categories = Category::all();
-
-        return Inertia::render('Admin/AdminDashboard', [
-            'categories' => $categories
-        ]);
-    }
+{
+    $categories = Category::all();
+    return Inertia::render('Admin/AdminDashboard', [
+        'categories' => $categories
+    ]);
+}
 
     public function store(Request $request)
     {

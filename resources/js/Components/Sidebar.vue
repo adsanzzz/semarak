@@ -14,6 +14,7 @@ import {
   ChevronRightIcon,
 } from "@heroicons/vue/24/outline";
 
+// Sidebar selalu terbuka, tidak bisa di-minimize
 const isOpen = ref(true);
 const openSubmenu = ref(null); // track submenu terbuka
 
@@ -93,13 +94,7 @@ const toggleSubmenu = (name) => {
           Semarak
         </h1>
       </div>
-      <button
-        class="p-2 rounded-full hover:bg-white/20 transition cursor-pointer"
-        @click="isOpen = !isOpen"
-      >
-        <span v-if="isOpen">◀</span>
-        <span v-else>▶</span>
-      </button>
+  <!-- Tombol minimize dihilangkan, sidebar selalu terbuka -->
     </div>
 
     <!-- Menu -->

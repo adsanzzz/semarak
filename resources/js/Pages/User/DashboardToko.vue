@@ -60,7 +60,7 @@ const chartData = computed(() => ({
       <Sidebar class="h-screen fixed left-0 top-0 bg-white shadow-md" />
 
       <!-- Konten utama -->
-      <div class="flex-1 ml-64 bg-gray-100 min-h-screen">
+  <div class="flex-1 ml-0 bg-gray-100 min-h-screen">
         <div class="py-10 px-6">
           <div class="max-w-7xl mx-auto space-y-8">
             

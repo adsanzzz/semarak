@@ -7,11 +7,30 @@ use Illuminate\Database\Eloquent\Model;
 class Product extends Model
 {
     use HasFactory;
+
     protected $fillable = [
-        'user_id', 'nama', 'harga', 'stok', 'kategori', 'deskripsi', 'image', 'terjual',
-        'warna', 'ukuran', 'berat'
+        'user_id',
+        'nama',
+        'harga',
+        'stok',
+        'kategori_id', // ganti dari 'kategori' → 'kategori_id'
+        'deskripsi',
+        'image',
+        'terjual',
+        'warna',
+        'ukuran',
+        'berat',
     ];
-    public function user() {
+
+    // Relasi ke User (pemilik produk)
+    public function user()
+    {
         return $this->belongsTo(User::class);
+    }
+
+    // Relasi ke Category
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'kategori_id');
     }
 }

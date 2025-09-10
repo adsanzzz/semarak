@@ -8,7 +8,10 @@ return new class extends Migration {
     {
         Schema::create('categories', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('icon')->nullable();         // icon / logo (bisa path file)
+            $table->string('nama_kategori');            // nama kategori
+            $table->text('deskripsi')->nullable();      // deskripsi kategori
+            $table->unsignedInteger('jumlah_toko')->default(0); // jumlah toko yg memakai kategori
             $table->timestamps();
         });
     }

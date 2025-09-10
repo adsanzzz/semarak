@@ -1,7 +1,6 @@
 <script setup>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head } from '@inertiajs/vue3'
-import Sidebar from '@/Components/Sidebar.vue'
 
 const props = defineProps({
   products: Array,
@@ -27,7 +26,6 @@ function renderStars(rating) {
       </h2>
     </template>
     <div class="flex">
-      <Sidebar class="fixed left-0 top-0 h-screen" />
       <div class="flex-1 ml-64 bg-gray-100 min-h-screen">
         <div class="py-12">
           <div class="mx-auto max-w-7xl sm:px-6 lg:px-8">

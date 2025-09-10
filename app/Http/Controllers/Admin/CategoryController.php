@@ -19,9 +19,43 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required|string|max:255',
+            'icon' => 'required|string|max:255',
+            'nama_kategori' => 'required|string|max:255',
+            'deskripsi' => 'nullable|string',
         ]);
-        Category::create(['name' => $request->name]);
-        return redirect()->route('admin.dashboard');
+
+        Category::create([
+            'icon' => $request->icon,
+            'nama_kategori' => $request->nama_kategori,
+            'deskripsi' => $request->deskripsi,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Kategori berhasil ditambahkan');
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'nama_kategori' => 'required|string|max:255',
+            'icon' => 'nullable|string|max:255',
+            'deskripsi' => 'nullable|string',
+        ]);
+
+        $category = Category::findOrFail($id);
+        $category->update([
+            'nama_kategori' => $request->nama_kategori,
+            'icon' => $request->icon ?? $category->icon,
+            'deskripsi' => $request->deskripsi ?? $category->deskripsi,
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('success', 'Kategori berhasil diperbarui');
+    }
+
+    public function destroy($id)
+    {
+        $category = Category::findOrFail($id);
+        $category->delete();
+
+        return redirect()->route('admin.dashboard')->with('success', 'Kategori berhasil dihapus');
     }
 }
