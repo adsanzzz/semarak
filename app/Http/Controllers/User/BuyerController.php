@@ -57,7 +57,7 @@ class BuyerController extends Controller
                 'nama'      => $p->nama,
                 'toko'      => $p->user?->name ?? '-',
                 'rating'    => 4.8, // dummy, ganti jika ada rating
-                'terjual'   => 0,   // dummy, ganti jika ada data
+                'terjual'   => 100,   // dummy, ganti jika ada data
                 'kategori'  => $p->category?->nama_kategori ?? '-',
                 'hargaCoret'=> null, // dummy, ganti jika ada diskon
                 'harga'     => 'Rp ' . number_format($p->harga, 0, ',', '.'),

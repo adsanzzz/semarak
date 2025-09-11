@@ -1,6 +1,4 @@
-
 <?php
-
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -62,14 +60,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/promo-buyer', 'promoBuyer')->name('promo.buyer');
     });
 
+    // Keranjang (📌 pastikan path Vue-nya sesuai)
+    Route::get('/keranjang', fn () => Inertia::render('User/Keranjang'))->name('keranjang.index');
+
     // Lihat Semua Produk (route lama, sebaiknya dihapus kalau sudah pakai route baru)
     Route::get('/lihat-produk', fn () => Inertia::render('User/LihatProduk'))->name('lihat-produk');
-      // Halaman Tentang Semarak
-    Route::get('/tentang-semarak', function () {
-        return Inertia::render('TentangSemarak');
-    })->name('tentang.semarak');
-});
 
+    // Halaman Tentang Semarak
+    Route::get('/tentang-semarak', fn () => Inertia::render('TentangSemarak'))->name('tentang.semarak');
+});
 
 /*
 |--------------------------------------------------------------------------

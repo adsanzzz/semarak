@@ -44,7 +44,10 @@
         </div>
 
         <!-- Ikon -->
-        <ShoppingCartIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+        <Link :href="route('keranjang.index')">
+  <ShoppingCartIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+</Link>
+
         <BellIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
         <ChatBubbleOvalLeftEllipsisIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
 
@@ -79,7 +82,6 @@ import {
 const menus = [
   { name: "Dashboard", route: "/dashboard" },
   { name: "Produk", route: "/produk/lihat" },
-  { name: "Kategori", route: "/kategori" },
   { name: "Promo", route: "/promo-buyer" },
   { name: "Tentang Semarak", route: "/tentang-semarak" },
 ]

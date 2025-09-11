@@ -13,7 +13,8 @@ class Product extends Model
         'nama',
         'harga',
         'stok',
-        'kategori_id', // ganti dari 'kategori' → 'kategori_id'
+        'kategori_id',
+        'kategori_nama',
         'deskripsi',
         'image',
         'terjual',

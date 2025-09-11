@@ -11,6 +11,9 @@ use App\Http\Controllers\Controller;
 
 class ProductController extends Controller
 {
+    /**
+     * Tampilkan produk (public/toko user)
+     */
     public function index()
     {
         $products = Auth::check()
@@ -25,6 +28,9 @@ class ProductController extends Controller
         ]);
     }
 
+    /**
+     * Simpan produk baru
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -35,7 +41,7 @@ class ProductController extends Controller
             'deskripsi'   => 'nullable|string',
             'warna'       => 'nullable|string|max:100',
             'ukuran'      => 'nullable|string|max:100',
-            'berat'       => 'required|integer',
+            'berat'       => 'nullable|integer',
             'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
@@ -43,22 +49,27 @@ class ProductController extends Controller
             ? $request->file('image')->store('produk', 'public')
             : null;
 
+        $kategori = Category::find($request->kategori_id);
         Product::create([
-            'user_id'     => Auth::id(),
-            'nama'        => $request->nama,
-            'harga'       => $request->harga,
-            'stok'        => $request->stok,
-            'kategori_id' => $request->kategori_id,
-            'deskripsi'   => $request->deskripsi,
-            'warna'       => $request->warna,
-            'ukuran'      => $request->ukuran,
-            'berat'       => $request->berat,
-            'image'       => $imagePath,
+            'user_id'        => Auth::id(),
+            'nama'           => $request->nama,
+            'harga'          => $request->harga,
+            'stok'           => $request->stok,
+            'kategori_id'    => $kategori ? $kategori->id : null,
+            'kategori_nama'  => $kategori ? $kategori->nama : null,
+            'deskripsi'      => $request->deskripsi,
+            'warna'          => $request->warna,
+            'ukuran'         => $request->ukuran,
+            'berat'          => $request->berat,
+            'image'          => $imagePath,
         ]);
 
         return back()->with('success', 'Produk berhasil ditambahkan');
     }
 
+    /**
+     * Update produk
+     */
     public function update(Request $request, $id)
     {
         $request->validate([
@@ -69,7 +80,7 @@ class ProductController extends Controller
             'deskripsi'   => 'nullable|string',
             'warna'       => 'nullable|string|max:100',
             'ukuran'      => 'nullable|string|max:100',
-            'berat'       => 'required|integer',
+            'berat'       => 'nullable|integer',
             'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
@@ -80,21 +91,26 @@ class ProductController extends Controller
             $imagePath = $request->file('image')->store('produk', 'public');
         }
 
+        $kategori = Category::find($request->kategori_id);
         $product->update([
-            'nama'        => $request->nama,
-            'harga'       => $request->harga,
-            'stok'        => $request->stok,
-            'kategori_id' => $request->kategori_id,
-            'deskripsi'   => $request->deskripsi,
-            'warna'       => $request->warna,
-            'ukuran'      => $request->ukuran,
-            'berat'       => $request->berat,
-            'image'       => $imagePath,
+            'nama'           => $request->nama,
+            'harga'          => $request->harga,
+            'stok'           => $request->stok,
+            'kategori_id'    => $kategori ? $kategori->id : null,
+            'kategori_nama'  => $kategori ? $kategori->nama : null,
+            'deskripsi'      => $request->deskripsi,
+            'warna'          => $request->warna,
+            'ukuran'         => $request->ukuran,
+            'berat'          => $request->berat,
+            'image'          => $imagePath,
         ]);
 
         return back()->with('success', 'Produk berhasil diperbarui');
     }
 
+    /**
+     * Hapus produk
+     */
     public function destroy($id)
     {
         $product = Product::where('user_id', Auth::id())->findOrFail($id);
@@ -103,32 +119,35 @@ class ProductController extends Controller
         return back()->with('success', 'Produk berhasil dihapus');
     }
 
+    /**
+     * Halaman kelola produk (untuk user toko)
+     */
     public function manage()
-{
-    $user = Auth::user();
+    {
+        $user = Auth::user();
 
-    $products = Product::with('category')
-        ->where('user_id', $user->id)
-        ->latest()
-        ->get()
-        ->map(function ($p) {
-            return [
-                'id'        => $p->id,
-                'nama'      => $p->nama,
-                'harga'     => $p->harga,
-                'stok'      => $p->stok,
-                'kategori'  => $p->category?->nama_kategori ?? '-', // ambil nama kategori
-                'deskripsi' => $p->deskripsi,
-                'warna'     => $p->warna,
-                'ukuran'    => $p->ukuran,
-                'berat'     => $p->berat,
-                'image_url' => $p->image ? asset('storage/' . $p->image) : null,
-            ];
-        });
+        $products = Product::with('category')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->get()
+            ->map(function ($p) {
+                return [
+                    'id'        => $p->id,
+                    'nama'      => $p->nama,
+                    'harga'     => $p->harga,
+                    'stok'      => $p->stok,
+                    'category'  => $p->category, // kirim object kategori full
+                    'deskripsi' => $p->deskripsi,
+                    'warna'     => $p->warna,
+                    'ukuran'    => $p->ukuran,
+                    'berat'     => $p->berat,
+                    'image_url' => $p->image ? asset('storage/' . $p->image) : null,
+                ];
+            });
 
-    return Inertia::render('User/KelolaProduk', [
-        'products'   => $products,
-        'categories' => Category::all(),
-    ]);
-}
+        return Inertia::render('User/KelolaProduk', [
+            'products'   => $products,
+            'categories' => Category::all(),
+        ]);
+    }
 }

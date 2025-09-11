@@ -13,15 +13,38 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
+
+            // Default
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('phone')->nullable();
-            $table->string('nama_toko')->nullable();
-            $table->string('alamat_toko')->nullable();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->integer('role')->default(2); // 1=admin, 2=user_toko, 3=user_buyer
+            $table->timestamp('email_verified_at')->nullable();
             $table->rememberToken();
+            $table->integer('role')->default(2); // 1=admin, 2=user_toko, 3=user_buyer
+
+            // Tambahan untuk kelola user / toko
+            $table->string('nama_toko')->nullable();
+            $table->string('nik_penjual')->nullable();
+            $table->string('nama_lengkap_penjual')->nullable();
+            $table->string('phone')->nullable();
+            $table->string('alamat_penjual')->nullable();
+            $table->string('provinsi')->nullable();
+            $table->string('kabupaten')->nullable();
+            $table->string('kecamatan')->nullable();
+            $table->string('kelurahan')->nullable();
+            $table->string('kategori_usaha')->nullable();
+            $table->string('modal_usaha')->nullable();
+            $table->string('omset_tahun')->nullable();
+            $table->boolean('sertifikasi_halal')->default(false);
+            $table->boolean('sertifikasi_haki')->default(false);
+            $table->string('sosmed')->nullable();
+            $table->string('tautan_marketplace')->nullable();
+            $table->text('informasi_kemitraan')->nullable();
+            $table->text('pelatihan_usaha')->nullable();
+            $table->string('bank_tujuan')->nullable();
+            $table->string('nama_rekening')->nullable();
+            $table->string('norek')->nullable();
+
             $table->timestamps();
         });
 
