@@ -1,20 +1,69 @@
 <template>
 	<div>
 		<NavbarAuth />
-		<div class="max-w-3xl mx-auto py-16 px-6">
-			<h1 class="text-2xl font-bold mb-4 text-blue-700">Tentang Semarak</h1>
-			<div class="bg-white rounded-xl shadow p-6">
-				<p class="text-gray-700 mb-2">
-					Semarak adalah marketplace UMKM Karanganyar yang bertujuan membantu pelaku usaha lokal memasarkan produk secara online dengan mudah dan aman.
-				</p>
-				<ul class="list-disc ml-6 text-gray-600 mb-4">
-					<li>Memberdayakan UMKM lokal</li>
-					<li>Transaksi aman dan transparan</li>
-					<li>Beragam produk unggulan Karanganyar</li>
-				</ul>
-				<div class="text-sm text-gray-400">&copy; 2025 Semarak Karanganyar</div>
-			</div>
-		</div>
+		<div class="bg-white text-gray-800">
+    <!-- Breadcrumb -->
+    <div class="bg-gray-50 border-b">
+      <div class="max-w-6xl mx-auto px-4 py-4">
+        <nav class="text-sm text-gray-500">
+          <ol class="flex items-center space-x-2">
+            <li>
+              <a href="/" class="hover:text-gray-700">Beranda</a>
+            </li>
+            <li>/</li>
+            <li class="text-gray-700 font-medium">Tentang Semarak</li>
+          </ol>
+        </nav>
+        <h1 class="text-xl font-semibold text-gray-800 mt-2">Tentang Semarak</h1>
+      </div>
+    </div>
+
+    <!-- Content -->
+    <div class="max-w-6xl mx-auto px-4 py-12 space-y-16">
+      <!-- Apa Itu Semarak -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <!-- Illustration -->
+        <div class="flex justify-center">
+          <img
+            src="images/yellow1.png"
+            alt="Apa Itu Semarak"
+            class="w-80 h-auto"
+          />
+        </div>
+        <!-- Text -->
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-4">Apa Itu SEMARAK?</h2>
+          <p class="text-gray-600 leading-relaxed">
+            SEMARAK adalah marketplace berbasis web yang didedikasikan khusus untuk produk-produk UMKM lokal Kabupaten Karanganyar.
+            Dikembangkan oleh Dinas Komunikasi dan Informatika (Diskominfo) Karanganyar, SEMARAK hadir sebagai solusi digital
+            untuk meningkatkan daya saing pelaku usaha serta mempermudah masyarakat dalam menemukan dan membeli produk unggulan daerah.
+          </p>
+        </div>
+      </div>
+
+      <!-- Kenapa Harus Semarak -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <!-- Text -->
+        <div>
+          <h2 class="text-2xl font-bold text-gray-900 mb-4">Kenapa Harus SEMARAK?</h2>
+          <p class="text-gray-600 leading-relaxed mb-4">
+            Dengan SEMARAK, UMKM Karanganyar mendapatkan akses lebih luas ke pasar digital, sementara masyarakat bisa berbelanja produk lokal berkualitas dengan mudah, cepat, dan aman.
+          </p>
+          <p class="text-yellow-600 font-medium flex items-center gap-2">
+            💡 Dukung produk lokal, majukan ekonomi daerah!
+          </p>
+        </div>
+        <!-- Illustration -->
+        <div class="flex justify-center">
+          <img
+            src="images/yellow2.png"
+            alt="Kenapa Harus Semarak"
+            class="w-80 h-auto"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
 	</div>
 </template>
 
