@@ -9,14 +9,14 @@
 
       <!-- Menu -->
       <nav class="hidden md:flex items-center space-x-8">
-        <a
+        <Link
           v-for="menu in menus"
           :key="menu.name"
           :href="menu.route"
           class="text-gray-700 hover:text-blue-600"
         >
           {{ menu.name }}
-        </a>
+        </Link>
       </nav>
 
       <!-- Search + Icons -->
@@ -68,7 +68,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { router, usePage } from '@inertiajs/vue3'
+import { router, usePage, Link } from '@inertiajs/vue3'
 import {
   ShoppingCartIcon,
   BellIcon,
@@ -78,8 +78,10 @@ import {
 
 const menus = [
   { name: "Dashboard", route: "/dashboard" },
-  { name: "Produk", route: "/produk" },
-  { name: "Transaksi", route: "/transaksi" },
+  { name: "Produk", route: "/produk/lihat" },
+  { name: "Kategori", route: "/kategori" },
+  { name: "Promo", route: "/promo-buyer" },
+  { name: "Tentang Semarak", route: "/tentang-semarak" },
 ]
 
 const showDropdown = ref(false)

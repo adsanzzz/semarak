@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Foundation\Application;
@@ -7,8 +8,9 @@ use Inertia\Inertia;
 // Controllers
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SaktiController;
-use App\Http\Controllers\User\ProductController;
 use App\Http\Controllers\Auth\RegisterTokoController;
+use App\Http\Controllers\User\ProductController;
+use App\Http\Controllers\User\BuyerController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 
@@ -30,71 +32,44 @@ Route::get('/', function () {
 Route::get('/register-type', fn () => Inertia::render('Auth/RegisterType'))->name('register.type');
 
 // Registrasi toko
-Route::get('/register-toko', [RegisterTokoController::class, 'create'])->name('register.toko');
-Route::post('/register-toko', [RegisterTokoController::class, 'store'])->name('register.toko.store');
+Route::controller(RegisterTokoController::class)->group(function () {
+    Route::get('/register-toko', 'create')->name('register.toko');
+    Route::post('/register-toko', 'store')->name('register.toko.store');
+});
 
 // Produk publik
 Route::get('/toko', [ProductController::class, 'index'])->name('user.toko');
 
 /*
 |--------------------------------------------------------------------------
-| User Routes (Produk, Dashboard, Pesanan)
+| User Routes (Produk, Dashboard, Pesanan, Promo)
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'verified'])->group(function () {
-    // CRUD Produk
-    Route::post('/toko', [ProductController::class, 'store'])->name('user.toko.store');
-    Route::put('/toko/{id}', [ProductController::class, 'update'])->name('user.toko.update');
-    Route::delete('/toko/{id}', [ProductController::class, 'destroy'])->name('user.toko.destroy');
+    // Produk
+    Route::controller(ProductController::class)->group(function () {
+        Route::post('/toko', 'store')->name('user.toko.store');
+        Route::put('/toko/{id}', 'update')->name('user.toko.update');
+        Route::delete('/toko/{id}', 'destroy')->name('user.toko.destroy');
+        Route::get('/products', 'manage')->name('user.products');
+    });
 
-    // Kelola Produk (halaman user)
-    Route::get('/products', [ProductController::class, 'manage'])->name('user.products');
+    // Buyer
+    Route::controller(BuyerController::class)->group(function () {
+        Route::get('/dashboard', 'dashboard')->name('dashboard');
+        Route::get('/pesanan', 'kelolaPesanan')->name('user.orders');
+        Route::get('/produk/lihat', 'lihatProduk')->name('produk.lihat');
+        Route::get('/promo-buyer', 'promoBuyer')->name('promo.buyer');
+    });
 
-    // Dashboard
-    Route::get('/dashboard', function () {
-        $user = auth()->user();
-        $products = \App\Models\Product::latest()->get();
-
-        return match ($user->role) {
-            1 => Inertia::render('Admin/AdminDashboard', [
-                'categories' => \App\Models\Category::all(),
-            ]),
-            2 => Inertia::render('User/DashboardToko', [
-                'categories' => \App\Models\Category::all(),
-                'products'   => $products,
-            ]),
-            3 => Inertia::render('User/DashboardBuyer', [
-                'products' => $products,
-            ]),
-            default => Inertia::render('User/DashboardToko', [
-                'categories' => [],
-                'products'   => $products,
-            ]),
-        };
-    })->name('dashboard');
-
-    // Kelola Pesanan
-    Route::get('/pesanan', function () {
-        return Inertia::render('User/KelolaPesanan', [
-            'orders' => [
-                [
-                    'id'           => 1,
-                    'product_nama' => 'Produk Contoh',
-                    'buyer_name'   => 'Pembeli Satu',
-                    'jumlah'       => 2,
-                    'status'       => 'Menunggu',
-                    'created_at'   => now()->toDateTimeString(),
-                ],
-            ],
-        ]);
-    })->name('user.orders');
-
-    // Lihat Semua Produk
-    Route::get('/lihat-produk', function () {
-        return Inertia::render('User/LihatProduk');
-    })->name('lihat-produk');
-    
+    // Lihat Semua Produk (route lama, sebaiknya dihapus kalau sudah pakai route baru)
+    Route::get('/lihat-produk', fn () => Inertia::render('User/LihatProduk'))->name('lihat-produk');
+      // Halaman Tentang Semarak
+    Route::get('/tentang-semarak', function () {
+        return Inertia::render('TentangSemarak');
+    })->name('tentang.semarak');
 });
+
 
 /*
 |--------------------------------------------------------------------------
@@ -103,9 +78,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 */
 Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-    Route::post('/categories', [AdminCategoryController::class, 'store'])->name('categories.store');
-    Route::put('/categories/{id}', [AdminCategoryController::class, 'update'])->name('categories.update');
-    Route::delete('/categories/{id}', [AdminCategoryController::class, 'destroy'])->name('categories.destroy');
+
+    Route::controller(AdminCategoryController::class)->group(function () {
+        Route::post('/categories', 'store')->name('categories.store');
+        Route::put('/categories/{id}', 'update')->name('categories.update');
+        Route::delete('/categories/{id}', 'destroy')->name('categories.destroy');
+    });
 });
 
 /*
@@ -124,7 +102,7 @@ Route::middleware('auth')->group(function () {
 | Auth Routes
 |--------------------------------------------------------------------------
 */
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';
 
 /*
 |--------------------------------------------------------------------------

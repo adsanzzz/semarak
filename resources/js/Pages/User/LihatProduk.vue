@@ -1,5 +1,7 @@
 <script setup>
 import { ref } from "vue";
+import { usePage } from '@inertiajs/vue3';
+import NavbarAuth from "@/Components/NavbarAuth.vue";
 
 // Filter
 const kategori = ref([
@@ -15,85 +17,14 @@ const selectedKategori = ref([]);
 const jarak = ref(10);
 const harga = ref(300000);
 
-// Produk
-const produkList = ref([
-  {
-    id: 1,
-    nama: "Polaroid Land Camera",
-    toko: "Toko Adhiana",
-    rating: 4.8,
-    terjual: 5,
-    kategori: "ELEKTRONIK",
-    hargaCoret: "Rp 650.000,00",
-    harga: "Rp 470.000,00",
-    jarak: "9.7 KM",
-    image: "https://via.placeholder.com/300x200",
-  },
-  {
-    id: 2,
-    nama: "Sayur Mentimun",
-    toko: "Toko Galik",
-    rating: 4.6,
-    terjual: 18,
-    kategori: "FOOD",
-    hargaCoret: "Rp 8.500,00",
-    harga: "Rp 7.000,00",
-    jarak: "0.27 KM",
-    image: "https://via.placeholder.com/300x200",
-  },
-  {
-    id: 3,
-    nama: "Kalung Hijab Beads",
-    toko: "Toko Anitt",
-    rating: 4.9,
-    terjual: 23,
-    kategori: "FASHION",
-    hargaCoret: "Rp 48.000,00",
-    harga: "Rp 27.000,00",
-    jarak: "—",
-    image: "https://via.placeholder.com/300x200",
-  },
-  {
-    id: 4,
-    nama: "Yong Ma Rice Cooker Low Carbo",
-    toko: "Toko Merbabu",
-    rating: 4.6,
-    terjual: 11,
-    kategori: "FASHION",
-    hargaCoret: "Rp 987.000,00",
-    harga: "Rp 913.000,00",
-    jarak: "—",
-    image: "https://via.placeholder.com/300x200",
-  },
-  {
-    id: 5,
-    nama: "Mug Porcelain - Putih",
-    toko: "Toko Kasumi",
-    rating: 4.7,
-    terjual: 13,
-    kategori: "FURNITURE",
-    hargaCoret: "Rp 40.000,00",
-    harga: "Rp 23.000,00",
-    jarak: "2.2 KM",
-    image: "https://via.placeholder.com/300x200",
-  },
-  {
-    id: 6,
-    nama: "Vas Motif Jepang",
-    toko: "Toko Monna",
-    rating: 4.9,
-    terjual: 10,
-    kategori: "FURNITURE",
-    hargaCoret: "Rp 350.000,00",
-    harga: "Rp 200.000,00",
-    jarak: "5.7 KM",
-    image: "https://via.placeholder.com/300x200",
-  },
-]);
+// Produk dari props Inertia
+const produkList = usePage().props.produkList || [];
 </script>
 
 <template>
-  <div class="max-w-7xl mx-auto px-6 py-10 font-sans">
+  <div>
+    <NavbarAuth />
+    <div class="max-w-7xl mx-auto px-6 py-10 font-sans">
     <!-- Breadcrumb -->
     <nav class="text-sm text-gray-500 mb-6">
       <span>Beranda</span> <span class="mx-2">›</span>
@@ -223,6 +154,7 @@ const produkList = ref([
           </div>
         </div>
       </main>
+    </div>
     </div>
   </div>
 </template>
