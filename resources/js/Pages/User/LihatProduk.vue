@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from "vue";
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 import NavbarAuth from "@/Components/NavbarAuth.vue";
 
 // Filter
@@ -19,6 +19,15 @@ const harga = ref(300000);
 
 // Produk dari props Inertia
 const produkList = usePage().props.produkList || [];
+
+function tambahKeKeranjang(produkId) {
+  router.post('/keranjang', { product_id: produkId }, {
+    preserveScroll: true,
+    onSuccess: () => {
+      // opsional: tampilkan notifikasi
+    }
+  });
+}
 </script>
 
 <template>
@@ -147,6 +156,7 @@ const produkList = usePage().props.produkList || [];
             </div>
             <button
               class="mt-3 w-full bg-yellow-400 hover:bg-yellow-500 text-white font-medium py-2 rounded flex items-center justify-center gap-2"
+              @click="tambahKeKeranjang(produk.id)"
             >
               Tambah ke Keranjang
               <i class="fas fa-shopping-cart"></i>

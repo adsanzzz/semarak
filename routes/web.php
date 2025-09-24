@@ -2,6 +2,7 @@
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
+use Illuminate\Http\Request;
 
 // Controllers
 use App\Http\Controllers\ProfileController;
@@ -9,6 +10,8 @@ use App\Http\Controllers\SaktiController;
 use App\Http\Controllers\Auth\RegisterTokoController;
 use App\Http\Controllers\User\ProductController;
 use App\Http\Controllers\User\BuyerController;
+use App\Http\Controllers\User\KeranjangController;
+use App\Http\Controllers\User\CheckoutController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 
@@ -68,6 +71,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Halaman Tentang Semarak
     Route::get('/tentang-semarak', fn () => Inertia::render('TentangSemarak'))->name('tentang.semarak');
+
+    // Checkout
+    Route::post('/checkout', [CheckoutController::class, 'checkout'])->name('checkout');
 });
 
 /*
@@ -110,3 +116,25 @@ require __DIR__ . '/auth.php';
 */
 Route::get('/sakti/login', [SaktiController::class, 'redirectToSakti'])->name('sakti.login');
 Route::get('/sakti/callback', [SaktiController::class, 'handleCallback'])->name('sakti.callback');
+
+/*
+|--------------------------------------------------------------------------
+| Keranjang Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['web'])->group(function () {
+    Route::get('/keranjang', [KeranjangController::class, 'index'])->name('keranjang.index');
+    Route::post('/keranjang', [KeranjangController::class, 'store'])->name('keranjang.store');
+    Route::delete('/keranjang', [KeranjangController::class, 'destroy'])->name('keranjang.destroy');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Misc Routes
+|--------------------------------------------------------------------------
+*/
+// Route untuk menyimpan nomor WA penjual ke session
+Route::post('/set-nomor-wa', function(Request $request) {
+    session(['nomor_wa_penjual' => $request->nomor_wa]);
+    return response()->json(['success' => true]);
+});

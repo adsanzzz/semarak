@@ -43,7 +43,9 @@
                   min="1"
                 />
               </td>
-              <td class="px-4 py-3 text-center">Rp {{ formatCurrency(item.price) }}</td>
+              <td class="px-4 py-3 text-center">
+                Rp {{ formatCurrency(item.price) }}
+              </td>
               <td class="px-4 py-3 text-center font-semibold">
                 Rp {{ formatCurrency(item.price * item.qty) }}
               </td>
@@ -65,11 +67,14 @@
         <div class="text-lg font-semibold">
           Total: Rp {{ formatCurrency(totalPrice) }}
         </div>
-        <button
-          class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+        <a
+          :href="`https://wa.me/${nomorWa}?text=${waDraft}`"
+          target="_blank"
+          class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2"
+          :disabled="!nomorWa"
         >
-          Checkout
-        </button>
+          Checkout via WhatsApp
+        </a>
       </div>
     </div>
   </div>
@@ -77,24 +82,36 @@
 
 <script setup>
 import { ref, computed } from "vue"
-import NavbarAuth from "@/Components/NavbarAuth.vue" // ✅ import navbar auth
+import { usePage } from "@inertiajs/vue3"
+import NavbarAuth from "@/Components/NavbarAuth.vue"
 
-const items = ref([
-  {
-    name: "Produk A",
-    price: 25000,
-    qty: 2,
-    image: "/images/sample1.png",
-  },
-  {
-    name: "Produk B",
-    price: 40000,
-    qty: 1,
-    image: "/images/sample2.png",
-  },
-])
+// Ambil items dari props Inertia dan buat reactive
+const items = ref([...usePage().props.items || []])
 
-// Hitung total
+// Nomor WA penjual dari produk pertama
+const nomorWa = computed(() => {
+  if (items.value.length === 0) return ''
+  // Asumsi field penjual ada di item, misal item.penjual_phone
+  const phone = items.value[0].penjual_phone || ''
+  // Format nomor WA (hilangkan spasi, strip, dan 0 di depan, ganti dengan 62)
+  let nomor = phone.replace(/[^0-9]/g, '')
+  if (nomor.startsWith('0')) nomor = '62' + nomor.slice(1)
+  return nomor
+})
+
+// Draft pesan WhatsApp
+const waDraft = computed(() => {
+  if (items.value.length === 0) return ''
+  let pesan = "Halo, saya ingin memesan produk berikut:\n"
+  items.value.forEach(item => {
+    pesan += `- ${item.name} x${item.qty} (Rp ${formatCurrency(item.price)})\n`
+  })
+  pesan += `\nTotal: Rp ${formatCurrency(totalPrice.value)}`
+  pesan += "\nMohon konfirmasi pesanan saya. Terima kasih."
+  return encodeURIComponent(pesan)
+})
+
+// Hitung total harga
 const totalPrice = computed(() =>
   items.value.reduce((sum, item) => sum + item.price * item.qty, 0)
 )

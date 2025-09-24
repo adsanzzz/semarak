@@ -94,7 +94,6 @@ function startEditRow(produk) {
   editForm.nama = produk.nama
   editForm.harga = produk.harga
   editForm.stok = produk.stok
-  // Ambil kategori_id dari object category
   editForm.kategori_id = produk.category?.id || ''
   editForm.deskripsi = produk.deskripsi
   editForm.berat = produk.berat
@@ -175,16 +174,29 @@ function hapusProduk(id) {
         <div class="bg-white rounded-lg shadow p-6">
           <div class="mb-6 flex justify-between items-center">
             <h3 class="text-lg font-semibold text-gray-800">Daftar Produk</h3>
-            <button @click="openForm" class="flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            <button
+              @click="openForm"
+              class="flex items-center bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+            >
               <span class="mr-1">Tambah Produk</span>
               <span class="text-xl leading-none">＋</span>
             </button>
           </div>
 
           <!-- Modal Tambah Produk -->
-          <div v-if="showForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-8 relative animate-fadeIn overflow-y-auto max-h-screen">
-              <button @click="closeForm" class="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-xl">×</button>
+          <div
+            v-if="showForm"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div
+              class="bg-white rounded-lg shadow-lg w-full max-w-lg p-8 relative animate-fadeIn overflow-y-auto max-h-screen"
+            >
+              <button
+                @click="closeForm"
+                class="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-xl"
+              >
+                ×
+              </button>
               <h3 class="text-xl font-bold mb-6 text-gray-800">Tambah Produk</h3>
               <form @submit.prevent="tambahProduk" class="space-y-4">
                 <div>
@@ -228,8 +240,13 @@ function hapusProduk(id) {
                       <input type="checkbox" v-model="enableBerat" class="rounded text-blue-600">
                       <span class="text-sm">Tambah Berat Produk</span>
                     </label>
-                    <input v-if="enableBerat" v-model="form.berat" type="text" placeholder="Contoh: 500 gram" 
-                           class="w-full border rounded px-3 py-2 mt-1">
+                    <input
+                      v-if="enableBerat"
+                      v-model="form.berat"
+                      type="text"
+                      placeholder="Contoh: 500 gram"
+                      class="w-full border rounded px-3 py-2 mt-1"
+                    >
                   </div>
 
                   <div class="space-y-2">
@@ -237,8 +254,13 @@ function hapusProduk(id) {
                       <input type="checkbox" v-model="enableWarna" class="rounded text-blue-600">
                       <span class="text-sm">Tambah Warna Produk</span>
                     </label>
-                    <input v-if="enableWarna" v-model="form.warna" type="text" placeholder="Contoh: Merah, Biru, Hijau" 
-                           class="w-full border rounded px-3 py-2 mt-1">
+                    <input
+                      v-if="enableWarna"
+                      v-model="form.warna"
+                      type="text"
+                      placeholder="Contoh: Merah, Biru, Hijau"
+                      class="w-full border rounded px-3 py-2 mt-1"
+                    >
                   </div>
 
                   <div class="space-y-2">
@@ -246,8 +268,13 @@ function hapusProduk(id) {
                       <input type="checkbox" v-model="enableUkuran" class="rounded text-blue-600">
                       <span class="text-sm">Tambah Ukuran Produk</span>
                     </label>
-                    <input v-if="enableUkuran" v-model="form.ukuran" type="text" placeholder="Contoh: S, M, L, XL" 
-                           class="w-full border rounded px-3 py-2 mt-1">
+                    <input
+                      v-if="enableUkuran"
+                      v-model="form.ukuran"
+                      type="text"
+                      placeholder="Contoh: S, M, L, XL"
+                      class="w-full border rounded px-3 py-2 mt-1"
+                    >
                   </div>
                 </div>
 
@@ -260,9 +287,19 @@ function hapusProduk(id) {
           </div>
 
           <!-- Modal Edit Produk -->
-          <div v-if="showEditForm" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-            <div class="bg-white rounded-lg shadow-lg w-full max-w-lg p-8 relative animate-fadeIn overflow-y-auto max-h-screen">
-              <button @click="closeEditForm" class="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-xl">×</button>
+          <div
+            v-if="showEditForm"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+          >
+            <div
+              class="bg-white rounded-lg shadow-lg w-full max-w-lg p-8 relative animate-fadeIn overflow-y-auto max-h-screen"
+            >
+              <button
+                @click="closeEditForm"
+                class="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-xl"
+              >
+                ×
+              </button>
               <h3 class="text-xl font-bold mb-6 text-gray-800">Edit Produk</h3>
               <form @submit.prevent="updateProduk" class="space-y-4">
                 <div>
@@ -355,6 +392,10 @@ function hapusProduk(id) {
 </template>
 
 <style scoped>
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
 </style>

@@ -18,7 +18,7 @@ class UserSeeder extends Seeder
             'nama_toko' => 'Toko Sukses Makmur',
             'nik_penjual' => '1234567890123456',
             'nama_lengkap_penjual' => 'Budi Santoso',
-            'phone' => '081234567890',
+            'phone' => '6288225210672',
             'alamat_penjual' => 'Jl. Raya Karanganyar No. 10',
             'provinsi' => 'Jawa Tengah',
             'kabupaten' => 'Karanganyar',
