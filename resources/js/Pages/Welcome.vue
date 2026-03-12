@@ -4,25 +4,72 @@ import { ref, onMounted } from "vue";
 
 const cartCount = ref(3);
 
+/* ================== MENU MOBILE ================== */
 onMounted(() => {
     const mobileMenuButton = document.querySelector("#mobileMenuButton");
     const navMenu = document.querySelector("#navMenu");
 
-    mobileMenuButton.addEventListener("click", () => {
-        navMenu.classList.toggle("mobile-active");
-    });
+    if (mobileMenuButton) {
+        mobileMenuButton.addEventListener("click", () => {
+            navMenu.classList.toggle("mobile-active");
+        });
+    }
 });
 
-const kategoriList = [
-    { nama: "Makanan & Minuman", image: "https://via.placeholder.com/100" },
-    { nama: "Fashion", image: "https://via.placeholder.com/100" },
-    { nama: "Kerajinan", image: "https://via.placeholder.com/100" },
-    { nama: "Aksesoris", image: "https://via.placeholder.com/100" },
-    { nama: "Makeup & Skincare", image: "https://via.placeholder.com/100" },
-    { nama: "Furnitur & Perabotan", image: "https://via.placeholder.com/100" },
-    { nama: "Elektronik", image: "https://via.placeholder.com/100" },
-    { nama: "Lainnya", image: "https://via.placeholder.com/100" },
+/* ================== DATA ULASAN ================== */
+const ulasanList = [
+    {
+        nama: "Maudy",
+        alamat: "Jebres, Surakarta",
+        komentar: "Produk berkualitas, pengiriman cepat, dan kemasan rapi!",
+        image: "/images/woman1.jpg",
+    },
+    {
+        nama: "Almira Jati",
+        alamat: "Jebres, Surakarta",
+        komentar: "Produk berkualitas, pengiriman cepat, dan kemasan rapi! Senang bisa belanja oleh-oleh khas Karanganyar di SEMARAK. Pasti repeat order!",
+        image: "/images/woman2.jpg",
+    },
+    {
+        nama: "Kiky Saputri",
+        alamat: "Jebres, Surakarta",
+        komentar: "Produk bagus banget, pelayanan ramah dan cepat!",
+        image: "/images/woman3.jpg",
+    },
 ];
+
+/* index aktif */
+const currentIndex = ref(1);
+
+/* ================== NAVIGASI ================== */
+const nextUlasan = () => {
+    currentIndex.value = (currentIndex.value + 1) % ulasanList.length;
+};
+
+const prevUlasan = () => {
+    currentIndex.value =
+        (currentIndex.value - 1 + ulasanList.length) % ulasanList.length;
+};
+
+/* ================== HELPER ================== */
+const getPrev = () => {
+    return ulasanList[
+        (currentIndex.value - 1 + ulasanList.length) % ulasanList.length
+    ];
+};
+
+const getNext = () => {
+    return ulasanList[
+        (currentIndex.value + 1) % ulasanList.length
+    ];
+};
+
+/* ================== AUTO SLIDE (opsional) ================== */
+onMounted(() => {
+    setInterval(() => {
+        nextUlasan();
+    }, 4000);
+});
 
 const produkList = [
     {
@@ -168,64 +215,6 @@ const produkList = [
             </div>
         </section>
 
-        <!-- ✅ Bagian Kategori & Produk Rekomendasi -->
-        <!-- Section Oleh-Oleh Khas Karanganyar -->
-        <section class="w-full bg-gray-100 py-20 mt-12">
-            <!-- Bungkus full width -->
-            <div class="px-6">
-                <!-- Kontainer isi di tengah -->
-                <div
-                    class="max-w-7xl mx-auto grid md:grid-cols-2 items-center gap-8"
-                >
-                    <!-- Bagian Teks -->
-                    <div class="relative z-10 text-left">
-                        <h2
-                            class="text-2xl md:text-3xl font-bold text-gray-900 mb-4"
-                        >
-                            Cari Oleh-Oleh Khas Karanganyar
-                        </h2>
-                        <p class="text-gray-600 mb-6">
-                            Jelajahi dan Temukan Beragam Oleh-Oleh Khas
-                            Karanganyar, Diproduksi Langsung oleh UMKM Lokal
-                            dengan Kualitas Terbaik!
-                        </p>
-                        <button
-                            class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-md transition"
-                        >
-                            Lihat Produk
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                class="w-4 h-4 ml-2"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                            >
-                                <path
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    stroke-width="2"
-                                    d="M9 5l7 7-7 7"
-                                />
-                            </svg>
-                        </button>
-                    </div>
-
-                    <!-- Gambar di kanan -->
-                    <div class="flex justify-center md:justify-end">
-                        <div
-                            class="w-[185px] h-[185px] rounded-full overflow-hidden shadow-md mr-6"
-                        >
-                            <img
-                                src="/images/timus.jpg"
-                                alt="Oleh-Oleh Karanganyar"
-                                class="w-full h-full object-cover"
-                            />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Section Produk Populer -->
         <section class="w-full bg-white py-16">
             <div class="max-w-6xl mx-auto px-6 text-center">
@@ -251,148 +240,107 @@ const produkList = [
 
         <!-- Section Ulasan Pembeli -->
         <section class="w-full bg-gray-100 py-16">
-            <div class="max-w-6xl mx-auto px-6 text-center">
-                <!-- Judul -->
-                <h2
-                    class="text-xl md:text-2xl font-semibold text-gray-900 mb-2"
-                >
-                    Ulasan Pembeli Semarak
-                </h2>
-                <p class="text-gray-600 mb-10">
-                    Apa Kata Mereka? Simak Ulasan Pembeli tentang Produk dan
-                    Layanan di SEMARAK!
-                </p>
+    <div class="max-w-6xl mx-auto px-6 text-center">
+        <!-- Judul -->
+        <h2 class="text-xl md:text-2xl font-semibold text-gray-900 mb-2">
+            Ulasan Pembeli Semarak
+        </h2>
+        <p class="text-gray-600 mb-10">
+            Apa Kata Mereka? Simak Ulasan Pembeli tentang Produk dan
+            Layanan di SEMARAK!
+        </p>
 
-                <!-- Carousel Ulasan -->
-                <div class="flex items-center justify-center space-x-6">
-                    <!-- Card sebelah kiri (blur/lebih kecil) -->
-                    <div
-                        class="hidden md:block w-80 bg-white rounded-xl shadow-md opacity-50 scale-90"
-                    >
-                        <div class="flex p-6 space-x-4">
-                            <img
-                                src="/images/woman1.jpg"
-                                alt="Maudy"
-                                class="w-20 h-20 rounded-md object-cover"
-                            />
-                            <div class="text-left">
-                                <p class="text-sm text-gray-500">
-                                    Produk berkualitas, pengiriman cepat, dan
-                                    kemasan rapi!
-                                </p>
-                                <div class="flex text-yellow-400 mt-2">
-                                    ★★★★★
-                                </div>
-                                <h4 class="font-semibold text-gray-800">
-                                    Maudy
-                                </h4>
-                                <p class="text-sm text-gray-500">
-                                    Jebres, Surakarta
-                                </p>
-                            </div>
-                        </div>
+        <!-- CAROUSEL -->
+        <div class="flex items-center justify-center space-x-6">
+
+            <!-- KIRI -->
+            <div class="hidden md:block w-80 bg-white rounded-xl shadow-md opacity-50 scale-90 transition">
+                <div class="flex p-6 space-x-4">
+                    <img :src="getPrev().image" class="w-20 h-20 rounded-md object-cover" />
+                    <div class="text-left">
+                        <p class="text-sm text-gray-500">
+                            {{ getPrev().komentar }}
+                        </p>
+                        <div class="text-yellow-400 mt-2">★★★★★</div>
+                        <h4 class="font-semibold text-gray-800">
+                            {{ getPrev().nama }}
+                        </h4>
+                        <p class="text-sm text-gray-500">
+                            {{ getPrev().alamat }}
+                        </p>
                     </div>
-
-                    <!-- Card aktif (tengah) -->
-                    <div
-                        class="w-[420px] bg-white rounded-xl shadow-lg transform scale-100"
-                    >
-                        <div class="flex p-6 space-x-4">
-                            <img
-                                src="/images/woman2.jpg"
-                                alt="Almira Jati"
-                                class="w-24 h-24 rounded-md object-cover"
-                            />
-                            <div class="text-left">
-                                <p class="text-sm text-gray-600 mb-2">
-                                    Produk berkualitas, pengiriman cepat, dan
-                                    kemasan rapi! Senang bisa belanja oleh-oleh
-                                    khas Karanganyar di SEMARAK. Pasti repeat
-                                    order!
-                                </p>
-                                <div class="flex text-yellow-400 mb-2">
-                                    ★★★★★
-                                </div>
-                                <h4 class="font-semibold text-gray-900">
-                                    Almira Jati
-                                </h4>
-                                <p class="text-sm text-gray-500">
-                                    Jebres, Surakarta
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Card sebelah kanan (blur/lebih kecil) -->
-                    <div
-                        class="hidden md:block w-80 bg-white rounded-xl shadow-md opacity-50 scale-90"
-                    >
-                        <div class="flex p-6 space-x-4">
-                            <img
-                                src="/images/woman3.jpg"
-                                alt="Kiky Saputri"
-                                class="w-20 h-20 rounded-md object-cover"
-                            />
-                            <div class="text-left">
-                                <p class="text-sm text-gray-500">
-                                    Produk berkualitas, pengiriman cepat, dan
-                                    kemasan rapi!
-                                </p>
-                                <div class="flex text-yellow-400 mt-2">
-                                    ★★★★★
-                                </div>
-                                <h4 class="font-semibold text-gray-800">
-                                    Kiky Saputri
-                                </h4>
-                                <p class="text-sm text-gray-500">
-                                    Jebres, Surakarta
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Navigasi Carousel -->
-                <div class="flex justify-center space-x-4 mt-8">
-                    <button
-                        class="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-5 h-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M15 19l-7-7 7-7"
-                            />
-                        </svg>
-                    </button>
-                    <button
-                        class="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-5 h-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 5l7 7-7 7"
-                            />
-                        </svg>
-                    </button>
                 </div>
             </div>
-        </section>
+
+            <!-- TENGAH (AKTIF) -->
+            <div class="w-[420px] bg-white rounded-xl shadow-lg transform scale-100 transition">
+                <div class="flex p-6 space-x-4">
+                    <img
+                        :src="ulasanList[currentIndex].image"
+                        class="w-24 h-24 rounded-md object-cover"
+                    />
+                    <div class="text-left">
+                        <p class="text-sm text-gray-600 mb-2">
+                            {{ ulasanList[currentIndex].komentar }}
+                        </p>
+                        <div class="text-yellow-400 mb-2">★★★★★</div>
+                        <h4 class="font-semibold text-gray-900">
+                            {{ ulasanList[currentIndex].nama }}
+                        </h4>
+                        <p class="text-sm text-gray-500">
+                            {{ ulasanList[currentIndex].alamat }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KANAN -->
+            <div class="hidden md:block w-80 bg-white rounded-xl shadow-md opacity-50 scale-90 transition">
+                <div class="flex p-6 space-x-4">
+                    <img :src="getNext().image" class="w-20 h-20 rounded-md object-cover" />
+                    <div class="text-left">
+                        <p class="text-sm text-gray-500">
+                            {{ getNext().komentar }}
+                        </p>
+                        <div class="text-yellow-400 mt-2">★★★★★</div>
+                        <h4 class="font-semibold text-gray-800">
+                            {{ getNext().nama }}
+                        </h4>
+                        <p class="text-sm text-gray-500">
+                            {{ getNext().alamat }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- BUTTON -->
+        <div class="flex justify-center space-x-4 mt-8">
+
+            <!-- KIRI -->
+            <button
+                @click="prevUlasan"
+                class="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100 transition"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+
+            <!-- KANAN -->
+            <button
+                @click="nextUlasan"
+                class="w-10 h-10 rounded-full border flex items-center justify-center hover:bg-gray-100 transition"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+
+        </div>
+    </div>
+</section>
 
         <!-- Section Warisan Lokal -->
         <section class="w-full bg-white py-16">
@@ -419,25 +367,7 @@ const produkList = [
                         autentik yang penuh makna. Temukan koleksi terbaik hanya
                         di SEMARAK!
                     </p>
-                    <button
-                        class="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 transition"
-                    >
-                        Lihat Produk Selengkapnya
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            class="w-4 h-4 ml-2"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                stroke-width="2"
-                                d="M9 5l7 7-7 7"
-                            />
-                        </svg>
-                    </button>
+
                 </div>
 
                 <!-- Gambar di kanan -->

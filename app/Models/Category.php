@@ -6,9 +6,15 @@ use Illuminate\Database\Eloquent\Model;
 class Category extends Model
 {
     protected $fillable = [
-    'icon',
+    'kategori',
     'nama_kategori',
-    'deskripsi',
-    'jumlah_toko',
 ];
+
+public function subcategories()
+{
+    return $this->hasMany(Subcategory::class);
 }
+
+}
+
+

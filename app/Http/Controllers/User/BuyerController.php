@@ -26,27 +26,15 @@ class BuyerController extends Controller
             3 => Inertia::render('User/DashboardBuyer', [
                 'products' => $products,
             ]),
-            default => Inertia::render('User/DashboardToko', [
-                'categories' => [],
-                'products'   => $products,
+            default => Inertia::render('User/DashboardBuyer', [
+                'products' => $products,
             ]),
         };
     }
 
     public function kelolaPesanan()
     {
-        return Inertia::render('User/KelolaPesanan', [
-            'orders' => [
-                [
-                    'id'           => 1,
-                    'product_nama' => 'Produk Contoh',
-                    'buyer_name'   => 'Pembeli Satu',
-                    'jumlah'       => 2,
-                    'status'       => 'Menunggu',
-                    'created_at'   => now()->toDateTimeString(),
-                ],
-            ],
-        ]);
+        return Inertia::render('User/KelolaPesanan');
     }
 
     public function lihatProduk()
@@ -56,19 +44,19 @@ class BuyerController extends Controller
                 'id'        => $p->id,
                 'nama'      => $p->nama,
                 'toko'      => $p->user?->name ?? '-',
-                'rating'    => 4.8, // dummy, ganti jika ada rating
-                'terjual'   => 100,   // dummy, ganti jika ada data
-                'kategori'  => $p->category?->nama_kategori ?? '-',
-                'hargaCoret'=> null, // dummy, ganti jika ada diskon
+                'rating'    => 4.8,
+                'terjual'   => 100,
+                'kategori'  => $p->category?->nama ?? '-',
+                'hargaCoret'=> null,
                 'harga'     => 'Rp ' . number_format($p->harga, 0, ',', '.'),
-                'jarak'     => '—', // dummy, ganti jika ada data
+                'jarak'     => '-',
                 'image'     => $p->image ? asset('storage/' . $p->image) : 'https://via.placeholder.com/300x200',
             ];
         });
-        $categories = Category::all();
+
         return Inertia::render('User/LihatProduk', [
             'produkList' => $products,
-            'categories' => $categories,
+            'categories' => Category::all(),
         ]);
     }
 

@@ -9,7 +9,6 @@ class Subcategory extends Model
     protected $fillable = [
         'category_id',
         'nama_subkategori',
-        'deskripsi',
     ];
 
     public function category()

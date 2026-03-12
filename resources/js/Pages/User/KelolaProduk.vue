@@ -3,17 +3,34 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head, useForm, router } from '@inertiajs/vue3'
 import Sidebar from '@/Components/Sidebar.vue'
 import { ref } from 'vue'
+import { computed } from 'vue'
 
 const props = defineProps({
   products: Array,
   categories: Array,
+  subCategories: Array,
 })
+
+// 🧪 CEK DATA MASUK ATAU ENGGA
+console.log('CATEGORIES:', props.categories)
+console.log('SUB CATEGORIES:', props.subCategories)
 
 /* 🔔 Notifikasi */
 const notif = ref(null)
 function showNotif(message, type = 'success') {
   notif.value = { message, type }
   setTimeout(() => (notif.value = null), 3000)
+}
+
+const filteredSubCategories = computed(() => {
+    if (!form.kategori_id) return []
+    return props.subCategories.filter(
+        sub => sub.kategori_id == form.kategori_id
+    )
+})
+
+function getSubCategories(kategoriId) {
+  return props.subCategories.filter(sub => sub.kategori_id == kategoriId)
 }
 
 // ➕ Form tambah produk dalam modal
@@ -29,6 +46,7 @@ const form = useForm({
   harga: '',
   stok: '',
   kategori_id: '',
+  sub_kategori_id: '',
   deskripsi: '',
   image: null,
   warna: '',
@@ -53,6 +71,7 @@ function tambahProduk() {
   data.append('harga', form.harga)
   data.append('stok', form.stok)
   data.append('kategori_id', form.kategori_id)
+  data.append('sub_kategori_id', form.sub_kategori_id)
   data.append('deskripsi', form.deskripsi)
   if (form.image) data.append('image', form.image)
 
@@ -82,6 +101,7 @@ const editForm = useForm({
   harga: '',
   stok: '',
   kategori_id: '',
+  sub_kategori_id: '',
   deskripsi: '',
   image: null,
   warna: '',
@@ -95,6 +115,7 @@ function startEditRow(produk) {
   editForm.harga = produk.harga
   editForm.stok = produk.stok
   editForm.kategori_id = produk.category?.id || ''
+  editForm.sub_kategori_id = produk.sub_kategori_id || ''
   editForm.deskripsi = produk.deskripsi
   editForm.berat = produk.berat
   editForm.warna = produk.warna
@@ -113,6 +134,7 @@ function updateProduk() {
   data.append('harga', editForm.harga)
   data.append('stok', editForm.stok)
   data.append('kategori_id', editForm.kategori_id)
+  data.append('sub_kategori_id', editForm.sub_kategori_id)
   data.append('deskripsi', editForm.deskripsi)
   if (editForm.image) data.append('image', editForm.image)
   if (editForm.berat) data.append('berat', editForm.berat)
@@ -215,13 +237,30 @@ function hapusProduk(id) {
                 </div>
                 <div>
                   <label class="block text-sm font-medium mb-1">Kategori</label>
-                  <select v-model="form.kategori_id" class="w-full border rounded px-3 py-2 text-gray-900" required>
+                  <select v-model="editForm.kategori_id">class="w-full border rounded px-3 py-2 text-gray-900" required>
                     <option value="" disabled>Pilih Kategori</option>
                     <option v-for="cat in categories" :key="cat.id" :value="cat.id">
                       {{ cat.nama || cat.nama_kategori || '-' }}
                     </option>
                   </select>
                 </div>
+                <!-- Sub Kategori -->
+<div v-if="form.kategori_id">
+  <label>Sub Kategori</label>
+
+  <select v-model="editForm.sub_kategori_id">
+    <option value="">Pilih Sub Kategori</option>
+
+    <option
+      v-for="sub in getSubCategories(form.kategori_id)"
+      :key="sub.id"
+      :value="sub.id"
+    >
+      {{ sub.nama_sub_kategori }}
+    </option>
+
+  </select>
+</div>
                 <div>
                   <label class="block text-sm font-medium mb-1">Deskripsi</label>
                   <textarea v-model="form.deskripsi" class="w-full border rounded px-3 py-2" rows="3"></textarea>
@@ -316,15 +355,23 @@ function hapusProduk(id) {
                     <input v-model="editForm.stok" type="number" class="w-full border rounded px-3 py-2" required />
                   </div>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium mb-1">Kategori</label>
-                  <select v-model="editForm.kategori_id" class="w-full border rounded px-3 py-2 text-gray-900" required>
-                    <option value="" disabled>Pilih Kategori</option>
-                    <option v-for="cat in categories" :key="cat.id" :value="cat.id">
-                      {{ cat.nama || cat.nama_kategori || '-' }}
-                    </option>
-                  </select>
-                </div>
+                <select v-model="form.kategori_id">
+    <option value="">Pilih Kategori</option>
+    <option v-for="cat in props.categories" :key="cat.id" :value="cat.id">
+        {{ cat.nama }}
+    </option>
+</select>
+                <!-- Sub Kategori -->
+<select v-model="form.sub_kategori_id">
+    <option value="">Pilih Sub Kategori</option>
+    <option 
+        v-for="sub in filteredSubCategories" 
+        :key="sub.id" 
+        :value="sub.id"
+    >
+        {{ sub.nama_sub_kategori }}
+    </option>
+</select>
                 <div>
                   <label class="block text-sm font-medium mb-1">Deskripsi</label>
                   <textarea v-model="editForm.deskripsi" class="w-full border rounded px-3 py-2" rows="3"></textarea>
@@ -352,6 +399,7 @@ function hapusProduk(id) {
                   <th class="px-4 py-3">Harga (Rp)</th>
                   <th class="px-4 py-3">Stok</th>
                   <th class="px-4 py-3">Kategori</th>
+                  <th class="px-4 py-3">Sub Kategori</th>
                   <th class="px-4 py-3">Berat</th>
                   <th class="px-4 py-3">Warna</th>
                   <th class="px-4 py-3">Ukuran</th>
@@ -371,6 +419,9 @@ function hapusProduk(id) {
                   <td class="px-4 py-3">{{ Number(produk.harga).toLocaleString('id-ID') }}</td>
                   <td class="px-4 py-3">{{ produk.stok }}</td>
                   <td class="px-4 py-3">{{ produk.category?.nama_kategori || '-' }}</td>
+                  <td class="px-4 py-3">
+  {{ produk.sub_category?.nama_sub_kategori || '-' }}
+</td>
                   <td class="px-4 py-3">{{ produk.berat || '-' }}</td>
                   <td class="px-4 py-3">{{ produk.warna || '-' }}</td>
                   <td class="px-4 py-3">{{ produk.ukuran || '-' }}</td>

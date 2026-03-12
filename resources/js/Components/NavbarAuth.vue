@@ -82,7 +82,6 @@ import {
 const menus = [
   { name: "Dashboard", route: "/dashboard" },
   { name: "Produk", route: "/produk/lihat" },
-  { name: "Promo", route: "/promo-buyer" },
   { name: "Tentang Semarak", route: "/tentang-semarak" },
 ]
 

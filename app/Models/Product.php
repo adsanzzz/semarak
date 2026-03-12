@@ -16,6 +16,7 @@ class Product extends Model
         'kategori_id',
         'kategori_nama',
         'deskripsi',
+        'sub_kategori_id',
         'image',
         'terjual',
         'warna',
@@ -31,7 +32,12 @@ class Product extends Model
 
     // Relasi ke Category
     public function category()
-    {
-        return $this->belongsTo(Category::class, 'kategori_id');
-    }
+{
+    return $this->belongsTo(Category::class, 'kategori_id');
+}
+
+public function subCategory()
+{
+    return $this->belongsTo(SubCategory::class, 'sub_kategori_id');
+}
 }

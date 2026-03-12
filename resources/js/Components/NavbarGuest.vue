@@ -24,10 +24,6 @@
           </div>
         </div>
 
-        <a href="#products" class="hover:text-primary font-medium">Produk</a>
-        <a href="#promo" class="hover:text-primary font-medium">
-          Promo dan Diskon
-        </a>
         <a href="#about" class="hover:text-primary font-medium">
           Tentang Semarak
         </a>

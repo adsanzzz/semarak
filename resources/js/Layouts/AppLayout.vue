@@ -14,7 +14,6 @@
     </footer>
   </div>
 </template>
-
 <script setup>
 import NavbarAuth from "@/Components/NavbarAuth.vue"
 </script>

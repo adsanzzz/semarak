@@ -18,6 +18,7 @@
         <table class="min-w-full border border-gray-200">
           <thead class="bg-gray-100 border-b">
             <tr>
+              <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Pilih</th>
               <th class="px-4 py-3 text-left text-sm font-semibold text-gray-600">Produk</th>
               <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Jumlah</th>
               <th class="px-4 py-3 text-center text-sm font-semibold text-gray-600">Harga</th>
@@ -31,6 +32,9 @@
               :key="index"
               class="border-b hover:bg-gray-50"
             >
+              <td class="px-4 py-3 text-center">
+                <input type="checkbox" v-model="item.selected" />
+              </td>
               <td class="px-4 py-3 flex items-center space-x-3">
                 <img :src="item.image" alt="produk" class="w-12 h-12 rounded" />
                 <span>{{ item.name }}</span>
@@ -68,12 +72,12 @@
           Total: Rp {{ formatCurrency(totalPrice) }}
         </div>
         <a
-          :href="`https://wa.me/${nomorWa}?text=${waDraft}`"
+          :href="selectedItems.length ? `https://wa.me/${nomorWa}?text=${waDraft}` : '#'"
           target="_blank"
-          class="bg-green-500 text-white px-6 py-2 rounded-lg hover:bg-green-600 flex items-center gap-2"
-          :disabled="!nomorWa"
+          class="px-6 py-2 rounded-lg flex items-center gap-2"
+          :class="selectedItems.length ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-500 pointer-events-none'"
         >
-          Checkout via WhatsApp
+          Checkout
         </a>
       </div>
     </div>
@@ -86,24 +90,25 @@ import { usePage } from "@inertiajs/vue3"
 import NavbarAuth from "@/Components/NavbarAuth.vue"
 
 // Ambil items dari props Inertia dan buat reactive
-const items = ref([...usePage().props.items || []])
+const rawItems = usePage().props.items || []
+// ensure each item has a `selected` property (default true)
+const items = ref(rawItems.map(i => ({ ...i, selected: true })))
 
-// Nomor WA penjual dari produk pertama
+// Nomor WA penjual dari produk pertama selected item
 const nomorWa = computed(() => {
-  if (items.value.length === 0) return ''
-  // Asumsi field penjual ada di item, misal item.penjual_phone
-  const phone = items.value[0].penjual_phone || ''
-  // Format nomor WA (hilangkan spasi, strip, dan 0 di depan, ganti dengan 62)
+  const first = items.value.find(it => it.selected)
+  if (!first) return ''
+  const phone = first.penjual_phone || ''
   let nomor = phone.replace(/[^0-9]/g, '')
   if (nomor.startsWith('0')) nomor = '62' + nomor.slice(1)
   return nomor
 })
 
-// Draft pesan WhatsApp
+// Draft pesan WhatsApp (only selected items)
 const waDraft = computed(() => {
-  if (items.value.length === 0) return ''
+  if (selectedItems.value.length === 0) return ''
   let pesan = "Halo, saya ingin memesan produk berikut:\n"
-  items.value.forEach(item => {
+  selectedItems.value.forEach(item => {
     pesan += `- ${item.name} x${item.qty} (Rp ${formatCurrency(item.price)})\n`
   })
   pesan += `\nTotal: Rp ${formatCurrency(totalPrice.value)}`
@@ -111,9 +116,12 @@ const waDraft = computed(() => {
   return encodeURIComponent(pesan)
 })
 
-// Hitung total harga
+// Items selected for checkout
+const selectedItems = computed(() => items.value.filter(i => i.selected))
+
+// Hitung total harga (selected only)
 const totalPrice = computed(() =>
-  items.value.reduce((sum, item) => sum + item.price * item.qty, 0)
+  selectedItems.value.reduce((sum, item) => sum + item.price * item.qty, 0)
 )
 
 // Hapus item

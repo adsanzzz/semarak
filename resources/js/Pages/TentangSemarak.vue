@@ -1,7 +1,8 @@
 <template>
-	<div>
-		<NavbarAuth />
-		<div class="bg-white text-gray-800">
+  <div>
+    <NavbarAuth v-if="isAuthenticated" />
+    <NavbarGuest v-else />
+    <div class="bg-white text-gray-800">
     <!-- Breadcrumb -->
     <div class="bg-gray-50 border-b">
       <div class="max-w-6xl mx-auto px-4 py-4">
@@ -68,5 +69,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { usePage } from '@inertiajs/vue3'
 import NavbarAuth from '@/Components/NavbarAuth.vue';
+import NavbarGuest from '@/Components/NavbarGuest.vue';
+
+const page = usePage()
+const isAuthenticated = computed(() => !!page.props.auth?.user)
 </script>

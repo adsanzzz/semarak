@@ -3,6 +3,7 @@ import { ref } from "vue";
 import { Link, router, usePage } from "@inertiajs/vue3";
 import AppLayout from "@/Layouts/AppLayout.vue";
 
+
 const menus = [
     { name: "Beranda", route: "/" },
     { name: "Kategori", route: "/kategori" },
@@ -46,11 +47,11 @@ function closeDropdown() {
                             Lokal!!
                         </p>
                         <Link
-                            href="/lihat-produk"
-                            class="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 inline-block"
-                        >
-                            Lihat Semua Produk →
-                        </Link>
+    :href="route('produk.lihat')"
+    class="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 inline-block"
+>
+    Lihat Semua Produk →
+</Link>
                     </div>
 
                     <!-- Image -->
