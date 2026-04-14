@@ -4,22 +4,24 @@ import { usePage, router } from '@inertiajs/vue3';
 import NavbarAuth from "@/Components/NavbarAuth.vue";
 
 // Filter
-const kategori = ref([
-  "Makanan & Minuman",
-  "Fashion",
-  "Kerajinan",
-  "Aksesoris",
-  "Makeup & Skincare",
-  "Lainnya",
-]);
-
-const selectedKategori = ref([]);
-
 const page = usePage()
 const isAuthenticated = computed(() => !!page.props.auth?.user)
 
 // Produk dari props Inertia
 const produkList = page.props.produkList || [];
+const categories = computed(() => page.props.categories || []);
+
+const selectedKategori = ref([]);
+
+const filteredProduk = computed(() => {
+  if (selectedKategori.value.length === 0) {
+    return produkList;
+  }
+
+  return produkList.filter((produk) =>
+    selectedKategori.value.includes(produk.kategori)
+  );
+});
 
 /* 🔔 Notifikasi kecil */
 const notif = ref(null)
@@ -46,11 +48,7 @@ function tambahKeKeranjang(produkId) {
 }
 
 function viewProduk(id) {
-  if (!isAuthenticated.value) {
-    router.get(route('login'))
-    return
-  }
-  router.get('/produk/' + id)
+  router.get(route('produk.show', id))
 }
 </script>
 
@@ -72,12 +70,12 @@ function viewProduk(id) {
             <h3 class="font-semibold text-gray-800 mb-2">Kategori</h3>
             <div class="space-y-2">
               <label
-                v-for="item in kategori"
-                :key="item"
+                v-for="item in categories"
+                :key="item.id"
                 class="flex items-center space-x-2 text-gray-600"
               >
-                <input type="checkbox" v-model="selectedKategori" :value="item" />
-                <span>{{ item }}</span>
+                <input type="checkbox" v-model="selectedKategori" :value="item.nama_kategori" />
+                <span>{{ item.nama_kategori }}</span>
               </label>
             </div>
           </div>
@@ -97,7 +95,7 @@ function viewProduk(id) {
           <!-- Grid Produk -->
           <div class="grid md:grid-cols-3 gap-6">
             <div
-  v-for="produk in produkList"
+ v-for="produk in filteredProduk"
   :key="produk.id"
   @click="viewProduk(produk.id)"
   class="bg-white rounded-xl shadow hover:shadow-lg transition p-4 cursor-pointer"

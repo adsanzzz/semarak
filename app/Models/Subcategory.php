@@ -4,12 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Subcategory extends Model
+class SubCategory extends Model
 {
     protected $fillable = [
-        'category_id',
-        'nama_subkategori',
-    ];
+    'category_id',
+    'nama_subkategori'
+];
 
     public function category()
     {

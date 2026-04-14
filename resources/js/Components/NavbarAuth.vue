@@ -48,8 +48,12 @@
   <ShoppingCartIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
 </Link>
 
-        <BellIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
-        <ChatBubbleOvalLeftEllipsisIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+        <Link :href="route('user.riwayat-pemesanan')">
+          <BellIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+        </Link>
+        <Link :href="route('chat.index')">
+          <ChatBubbleOvalLeftEllipsisIcon class="w-6 h-6 text-gray-600 hover:text-blue-600 cursor-pointer" />
+        </Link>
 
         <!-- User Dropdown -->
         <div class="relative">

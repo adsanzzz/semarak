@@ -15,8 +15,11 @@ use App\Http\Controllers\User\BuyerController;
 use App\Http\Controllers\User\KeranjangController;
 use App\Http\Controllers\User\CheckoutController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
+use App\Http\Controllers\Admin\SubCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\User\ChatController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ComplaintController;
 
 /*
 |--------------------------------------------------------------------------
@@ -44,6 +47,8 @@ Route::controller(RegisterTokoController::class)->group(function () {
 Route::get('/toko', [ProductController::class, 'index'])->name('user.toko');
 // Semua produk (publik) - tampilan listing produk yang sama untuk guest dan auth
 Route::get('/produk/lihat', [App\Http\Controllers\User\BuyerController::class, 'lihatProduk'])->name('produk.lihat');
+// DETAIL PRODUK (publik)
+Route::get('/produk/{id}', [ProductController::class, 'show'])->name('produk.show');
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
@@ -58,9 +63,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // DASHBOARD
     Route::get('/dashboard', [BuyerController::class, 'dashboard'])->name('dashboard');
 
-    // DETAIL PRODUK
-    Route::get('/produk/{id}', [ProductController::class, 'show'])->name('produk.show');
-
     // PRODUK MANAGEMENT
     Route::controller(ProductController::class)->group(function () {
         Route::post('/toko', 'store')->name('user.toko.store');
@@ -71,6 +73,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // PESANAN
     Route::get('/pesanan', [BuyerController::class, 'kelolaPesanan'])->name('user.orders');
+    Route::get('/riwayat-pemesanan', [BuyerController::class, 'riwayatPemesanan'])->name('user.riwayat-pemesanan');
+    Route::post('/orders/{id}/status', [OrderController::class, 'updateStatus'])
+    ->name('orders.updateStatus');
+
+Route::delete('/orders/{id}', [OrderController::class, 'destroy'])
+    ->name('orders.destroy');
+
+    // PENGADUAN & KOMPLAIN
+    Route::get('/pengaduan', function () {
+        return Inertia::render('PengaduanKomplain');
+    })->name('pengaduan');
+
+    // LIVE CHAT
+    Route::get('/live-chat', function () {
+        return Inertia::render('LiveChat');
+    });
 
     // PROMO
     Route::get('/promo-buyer', [BuyerController::class, 'promoBuyer'])->name('promo.buyer');
@@ -105,6 +123,9 @@ Route::middleware('auth')->group(function () {
 // CHAT
 Route::middleware(['auth'])->group(function () {
 
+    Route::get('/chat', [ChatController::class, 'index'])
+        ->name('chat.index');
+
     Route::get('/chat/start/{seller}', [ChatController::class, 'start'])
         ->name('chat.start');
 
@@ -138,13 +159,34 @@ Route::middleware(['auth', 'verified'])
         Route::delete('/categories/{id}', 'destroy')->name('categories.destroy');
     });
 
-    // USERS (Kelola Akun)
+    // SUB CATEGORY
+Route::controller(SubCategoryController::class)->group(function () {
+    Route::delete('/sub-categories/{id}', 'destroy')->name('subcategories.destroy');
+});
+
+    // 👤 USERS
     Route::controller(\App\Http\Controllers\Admin\UserController::class)->group(function () {
-        Route::get('/users', 'index')->name('users.index');
-        Route::delete('/users/{id}', 'destroy')->name('users.destroy');
+        Route::get('/users', 'index')->name('admin.users.index');
+        Route::delete('/users/{id}', 'destroy')->name('admin.users.destroy');
     });
 
+    // 📦 HISTORI PESANAN
+    Route::get('/orders', [AdminDashboardController::class, 'ordersHistory'])
+        ->name('admin.orders');
+
+    // 📢 KOMPLAIN
+    Route::get('/komplain', [KomplainController::class, 'index'])
+        ->name('admin.komplain');
+
+    // 🛍️ PRODUK
+    Route::get('/products', [AdminDashboardController::class, 'products'])
+        ->name('admin.products');
+
+    Route::delete('/products/{id}', [AdminDashboardController::class, 'deleteProduct'])
+        ->name('admin.products.destroy');
+
 });
+
 /*
 |--------------------------------------------------------------------------
 | AUTH

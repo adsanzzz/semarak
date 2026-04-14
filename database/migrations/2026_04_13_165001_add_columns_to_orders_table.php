@@ -11,14 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('orders', function (Blueprint $table) {
-            $table->id();
+        Schema::table('orders', function (Blueprint $table) {
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->foreignId('buyer_id')->constrained('users')->onDelete('cascade');
             $table->integer('jumlah');
             $table->decimal('total_harga', 15, 2);
             $table->enum('status', ['pending', 'diproses', 'selesai', 'dibatalkan'])->default('pending');
-            $table->timestamps();
         });
     }
 
@@ -27,6 +25,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('orders');
+        Schema::table('orders', function (Blueprint $table) {
+            $table->dropForeign(['product_id']);
+            $table->dropForeign(['buyer_id']);
+            $table->dropColumn(['product_id', 'buyer_id', 'jumlah', 'total_harga', 'status']);
+        });
     }
 };

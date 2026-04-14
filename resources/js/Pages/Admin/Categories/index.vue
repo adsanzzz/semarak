@@ -1,49 +1,48 @@
 <script setup>
 import AdminLayout from '@/Layouts/AdminLayout.vue'
 import { Head, useForm, router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
-    categories: Array
+    categories: {
+        type: Array,
+        default: () => []
+    }
+})
+
+const notif = ref({
+    show: false,
+    type: 'success',
+    message: ''
 })
 
 const form = useForm({
-    kategori: '',
-    subkategori: '',
+  nama_kategori: '',
+  nama_subkategori: '',
 })
 
-const notif = ref({ show: false, message: '', type: 'success' })
-
-function showNotif(message, type = 'success') {
-    notif.value = { show: true, message, type }
-    setTimeout(() => {
-        notif.value.show = false
-    }, 3000)
-}
-
-function submit() {
-    form.post(route('admin.categories.store'), {
+const submit = () => {
+    form.post('/admin/categories', {
         onSuccess: () => {
             form.reset()
-            showNotif('Kategori berhasil ditambahkan')
-        },
-        onError: () => {
-            showNotif('Terjadi kesalahan', 'error')
+            notif.value = {
+                show: true,
+                type: 'success',
+                message: 'Data berhasil ditambahkan'
+            }
         }
     })
 }
 
-function deleteCategory(id) {
-    if (!confirm('Yakin ingin menghapus sub kategori ini?')) return
-
-    router.delete(route('admin.categories.destroy', id), {
-        onSuccess: () => showNotif('Data berhasil dihapus'),
-        onError: () => showNotif('Gagal menghapus', 'error')
-    })
+const deleteSubCategory = (id) => {
+    if (confirm('Yakin hapus sub kategori?')) {
+        router.delete(`/admin/sub-categories/${id}`)
+    }
 }
 </script>
 
 <template>
+
 <Head title="Kelola Kategori" />
 
 <AdminLayout>
@@ -62,15 +61,15 @@ function deleteCategory(id) {
 
 <!-- HEADER -->
 <div class="flex justify-between items-center mb-6">
-<h2 class="text-xl font-bold text-gray-800">
-Kelola Kategori
-</h2>
+    <h2 class="text-xl font-bold text-gray-800">
+        Kelola Kategori
+    </h2>
 </div>
 
 <!-- FORM -->
 <form
-@submit.prevent="submit"
-class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
+    @submit.prevent="submit"
+    class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
 >
 
 <div>
@@ -79,10 +78,10 @@ Category
 </label>
 
 <input
-v-model="form.nama_kategori"
 type="text"
-class="border rounded w-full px-3 py-2 mt-1 focus:ring-2 focus:ring-blue-500"
-required
+v-model="form.nama_kategori"
+placeholder="Masukkan Category"
+class="border rounded w-full px-3 py-2 mt-1"
 />
 
 <div v-if="form.errors.nama_kategori" class="text-red-500 text-sm mt-1">
@@ -96,10 +95,10 @@ Sub Category
 </label>
 
 <input
-v-model="form.nama_subkategori"
 type="text"
-class="border rounded w-full px-3 py-2 mt-1 focus:ring-2 focus:ring-blue-500"
-required
+v-model="form.nama_subkategori"
+placeholder="Masukkan Sub Category"
+class="border rounded w-full px-3 py-2 mt-1"
 />
 
 <div v-if="form.errors.nama_subkategori" class="text-red-500 text-sm mt-1">
@@ -121,6 +120,7 @@ class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
 
 <!-- TABEL -->
 <div class="overflow-x-auto">
+
 <table class="min-w-full border text-sm">
 
 <thead>
@@ -134,10 +134,13 @@ class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
 
 <tbody>
 
-<template v-for="(cat,index) in categories" :key="cat.id">
-
 <tr
-v-for="sub in cat.subcategories"
+v-for="(sub, index) in props.categories.flatMap(cat =>
+    cat.sub_categories.map(sub => ({
+        ...sub,
+        nama_kategori: cat.nama_kategori
+    }))
+)"
 :key="sub.id"
 class="hover:bg-gray-50"
 >
@@ -147,17 +150,17 @@ class="hover:bg-gray-50"
 </td>
 
 <td class="border px-4 py-2">
-{{ cat.nama_kategori }}
+{{ sub.nama_kategori }}
 </td>
 
 <td class="border px-4 py-2">
-{{ sub.sub_kategori }}
+{{ sub.nama_subkategori }}
 </td>
 
-<td class="border px-4 py-2">
+<td class="border px-4 py-2 space-x-2">
 <button
-@click.prevent="deleteCategory(sub.id)"
-class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700"
+@click.prevent="deleteSubCategory(sub.id)"
+class="bg-red-600 text-white px-2 py-1 rounded"
 >
 Delete
 </button>
@@ -165,9 +168,7 @@ Delete
 
 </tr>
 
-</template>
-
-<tr v-if="categories.length === 0">
+<tr v-if="props.categories.length === 0">
 <td colspan="4" class="text-center py-6 text-gray-500">
 Belum ada data
 </td>
@@ -176,9 +177,11 @@ Belum ada data
 </tbody>
 
 </table>
+
 </div>
 
 </div>
 
 </AdminLayout>
+
 </template>

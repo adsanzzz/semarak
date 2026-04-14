@@ -1,4 +1,5 @@
 <script setup>
+import Sidebar from '@/Components/Sidebar.vue'
 import { Link } from '@inertiajs/vue3';
 </script>
 
@@ -21,54 +22,10 @@ import { Link } from '@inertiajs/vue3';
         <div class="flex">
 
             <!-- SIDEBAR -->
-            <div class="w-64 bg-white shadow-md min-h-screen p-4">
-
-                <h3 class="text-lg font-bold mb-4 border-b pb-2">
-                    Menu Admin
-                </h3>
-
-                <ul class="space-y-2 text-sm">
-
-                    <li>
-                        <Link :href="route('admin.categories.index')"
-                              class="block px-3 py-2 rounded-md hover:bg-blue-100 hover:text-blue-700">
-                            📂 Kelola Kategori
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link href="#"
-                              class="block px-3 py-2 rounded-md hover:bg-blue-100 hover:text-blue-700">
-                            🧾 Histori Pesanan
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link href="#"
-                              class="block px-3 py-2 rounded-md hover:bg-blue-100 hover:text-blue-700">
-                            ⚠ Kelola Pengaduan Komplain
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link :href="route('admin.users.index')"
-                              class="block px-3 py-2 rounded-md hover:bg-blue-100 hover:text-blue-700">
-                            👤 Kelola Akun
-                        </Link>
-                    </li>
-
-                    <li>
-                        <Link href="#"
-                              class="block px-3 py-2 rounded-md hover:bg-blue-100 hover:text-blue-700">
-                            🛍 Kelola Produk
-                        </Link>
-                    </li>
-
-                </ul>
-            </div>
+            <Sidebar />
 
             <!-- CONTENT -->
-            <div class="flex-1 p-8">
+            <div class="flex-1 ml-64 p-8">
                 <slot />
             </div>
 

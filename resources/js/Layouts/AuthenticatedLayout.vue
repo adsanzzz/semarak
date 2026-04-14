@@ -1,7 +1,7 @@
 <script setup>
 import { ref } from 'vue';
 import { router, Link } from '@inertiajs/vue3';
-
+import Sidebar from '@/Components/Sidebar.vue'
 import ApplicationLogo from '@/Components/ApplicationLogo.vue';
 import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';

@@ -20,8 +20,39 @@ class ProductController extends Controller
     /**
      * Simpan produk baru
      */
+
+public function index()
+{
+    $produk = Product::with('category')->get();
+    $categories = Category::all()->map(function ($category) {
+        return [
+            'id' => $category->id,
+            'nama_kategori' => $category->nama_kategori,
+        ];
+    });
+
+    return Inertia::render('LihatProduk', [
+        'produkList' => $produk->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'nama' => $item->nama,
+                'kategori' => $item->kategori_nama, // 🔥 penting
+                'harga' => 'Rp ' . number_format($item->harga),
+                'hargaCoret' => null,
+                'image' => $item->image ? asset('storage/' . $item->image) : null,
+                'rating' => 5,
+                'terjual' => $item->terjual ?? 0,
+                'toko' => 'Toko Kamu',
+                'jarak' => '1 km',
+            ];
+        }),
+        'categories' => $categories,
+    ]);
+}
+
     public function store(Request $request)
     {
+    
         $request->validate([
             'nama'        => 'required|string|max:255',
             'harga'       => 'required|integer',
@@ -47,7 +78,7 @@ class ProductController extends Controller
             'stok'           => $request->stok,
             'kategori_id'    => $kategori ? $kategori->id : null,
             'kategori_nama'  => $kategori ? $kategori->nama : null,
-             'sub_kategori_id'=> $request->sub_kategori_id,
+            'sub_kategori_id'=> $request->sub_kategori_id,
             'deskripsi'      => $request->deskripsi,
             'warna'          => $request->warna,
             'ukuran'         => $request->ukuran,
@@ -139,13 +170,13 @@ class ProductController extends Controller
             ];
         });
 
-    $categories = Category::all();
+    $categories = Category::with('subCategories')->get();
 
 $subCategories = SubCategory::all()->map(function ($s) {
     return [
         'id' => $s->id,
-        'nama_sub_kategori' => $s->nama_sub_kategori,
-        'kategori_id' => $s->kategori_id,
+        'nama_sub_kategori' => $s->nama_subkategori,
+        'kategori_id' => $s->category_id,
     ];
 });
 
@@ -158,7 +189,7 @@ return Inertia::render('User/KelolaProduk', [
 
 public function show($id)
 {
-    $produk = Product::with(['category', 'subCategory'])->findOrFail($id);
+    $produk = Product::with(['category', 'subCategory', 'user'])->findOrFail($id);
 
     return Inertia::render('User/DetailProduk', [
         'produk' => [
@@ -170,10 +201,22 @@ public function show($id)
             'warna'     => $produk->warna,
             'ukuran'    => $produk->ukuran,
             'image'     => $produk->image ? asset('storage/' . $produk->image) : null,
+            'toko'      => $produk->user?->name ?? '-',
+            'user_id'   => $produk->user_id,
+            'kategori'  => $produk->category?->nama_kategori ?? '-',
             'category'  => $produk->category,
-            'sub_category' => $produk->subCategory, // 👈 ini
+            'sub_category' => $produk->subCategory,
         ]
     ]);
 
+}
+
+public function create()
+{
+    $categories = Category::with('subCategories')->get();
+
+    return Inertia::render('User/Product/Create', [
+    'categories' => $categories
+    ]);
 }
 }

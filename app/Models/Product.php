@@ -38,6 +38,6 @@ class Product extends Model
 
 public function subCategory()
 {
-    return $this->belongsTo(SubCategory::class, 'sub_kategori_id');
+    return $this->belongsTo(SubCategory::class);
 }
 }

@@ -10,6 +10,35 @@ use Inertia\Inertia;
 
 class ChatController extends \App\Http\Controllers\Controller
 {
+    // Tampilkan semua chat user
+    public function index()
+    {
+        $userId = Auth::id();
+
+        $conversations = Conversation::where('buyer_id', $userId)
+            ->orWhere('seller_id', $userId)
+            ->with(['messages' => function($query) {
+                $query->latest()->first();
+            }, 'buyer', 'seller'])
+            ->get()
+            ->map(function($conversation) use ($userId) {
+                $otherUser = $conversation->buyer_id === $userId
+                    ? $conversation->seller
+                    : $conversation->buyer;
+
+                return [
+                    'id' => $conversation->id,
+                    'other_user' => $otherUser,
+                    'last_message' => $conversation->messages->first(),
+                    'unread_count' => 0, // TODO: implement unread count
+                ];
+            });
+
+        return Inertia::render('Chat/Index', [
+            'conversations' => $conversations
+        ]);
+    }
+
     // Buka chat dengan seller
     public function start($sellerId)
     {

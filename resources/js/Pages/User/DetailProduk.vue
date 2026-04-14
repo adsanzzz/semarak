@@ -110,13 +110,13 @@ function tambahKeranjang() {
             
             <button
               @click="tambahKeranjang"
-              class="bg-yellow-400 hover:bg-yellow-500 text-white px-6 py-3 rounded-lg font-medium w-full"
+              class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-medium flex-1"
             >
               + Keranjang
             </button>
 
             <button
-              class="border border-gray-300 px-6 py-3 rounded-lg w-full hover:bg-gray-100"
+              class="border border-gray-300 px-4 py-2 rounded-lg flex-1 hover:bg-gray-100"
             >
               Beli Sekarang
             </button>
@@ -124,7 +124,7 @@ function tambahKeranjang() {
              <!-- TOMBOL CHAT -->
   <a
     :href="route('chat.start', produk.user_id)"
-    class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg text-center"
+    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-center flex-1"
   >
     💬 Chat Penjual
   </a>

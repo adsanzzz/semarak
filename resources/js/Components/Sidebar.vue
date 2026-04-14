@@ -6,6 +6,7 @@ import { Link, usePage } from "@inertiajs/vue3";
 import {
   HomeIcon,
   ShoppingBagIcon,
+  ShoppingCartIcon,
   Cog6ToothIcon,
   StarIcon,
   TicketIcon,
@@ -26,39 +27,35 @@ const menus = computed(() => {
   if (user.value.role === 3) {
     // Buyer
     return [
-      { name: "Dashboard", icon: HomeIcon, route: "/dashboard" },
-      { name: "Keranjang Saya", icon: ShoppingBagIcon, route: "/keranjang" },
-      { name: "Pesanan Saya", icon: ShoppingBagIcon, route: "/user.pesanan" },
+      { name: "Pesanan Saya", icon: ShoppingBagIcon, route: route('user.riwayat-pemesanan') },
+      { name: "Keranjang Saya", icon: ShoppingCartIcon, route: "/keranjang" },
       {
         name: "Pengaduan & Komplain",
         icon: StarIcon,
         route: "/pengaduan",
         children: [
-          { name: "Daftar Pengaduan", route: "/pengaduan/submenu" },
-          { name: "Live Chat", route: "/pengaduan/chat" },
-          { name: "Daftar Komplain", route: "/pengaduan/komplain" },
-        ],
+  { name: "Daftar Pengaduan", route: "/pengaduan" },
+  { name: "Daftar Komplain", route: "/komplain" },
+],
       },
       // Tidak ada Kelola Promo
       { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
     ];
   } else {
     // Toko/admin
-    return [
+    return [  
       { name: "Dashboard", icon: HomeIcon, route: "/dashboard" },
       { name: "Kelola Produk", icon: ShoppingBagIcon, route: route('user.products') },
-      { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: "/pesanan" },
+      { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: route('user.orders') },
       {
         name: "Pengaduan & Komplain",
         icon: StarIcon,
         route: "/pengaduan",
         children: [
-          { name: "Daftar Pengaduan", route: "/pengaduan/submenu" },
-          { name: "Live Chat", route: "/pengaduan/chat" },
-          { name: "Daftar Komplain", route: "/pengaduan/komplain" },
+          { name: "Daftar Pengaduan", route: "/pengaduan" },
+          { name: "Daftar Komplain", route: "/komplain" },
         ],
       },
-      { name: "Kelola Promo", icon: TicketIcon, route: "/promo" },
       { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
     ];
   }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\User;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Models\Order;
 use Inertia\Inertia;
 use App\Models\Product;
 use App\Models\Category;
@@ -32,10 +33,14 @@ class BuyerController extends Controller
         };
     }
 
-    public function kelolaPesanan()
-    {
-        return Inertia::render('User/KelolaPesanan');
-    }
+   public function kelolaPesanan()
+{
+    $orders = \App\Models\Order::with('product', 'buyer')->get();
+
+    return Inertia::render('Buyer/KelolaPesanan', [
+        'orders' => $orders
+    ]);
+}
 
     public function lihatProduk()
     {
@@ -46,7 +51,7 @@ class BuyerController extends Controller
                 'toko'      => $p->user?->name ?? '-',
                 'rating'    => 4.8,
                 'terjual'   => 100,
-                'kategori'  => $p->category?->nama ?? '-',
+                'kategori'  => $p->category?->nama_kategori ?? '-',
                 'hargaCoret'=> null,
                 'harga'     => 'Rp ' . number_format($p->harga, 0, ',', '.'),
                 'jarak'     => '-',
@@ -60,8 +65,21 @@ class BuyerController extends Controller
         ]);
     }
 
+    public function riwayatPemesanan()
+    {
+        $userId = auth()->id();
+        $orders = Order::where('user_id', auth()->id())
+    ->latest()
+    ->get();
+
+        return Inertia::render('User/RiwayatPemesanan', [
+            'orders' => $orders,
+        ]);
+    }
+
     public function promoBuyer()
     {
         return Inertia::render('User/PromoBuyer');
     }
+    
 }

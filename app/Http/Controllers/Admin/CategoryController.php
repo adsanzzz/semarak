@@ -10,30 +10,33 @@ use App\Http\Controllers\Controller;
 class CategoryController extends Controller
 {
     public function index()
-    {
-        $categories = Category::all();
+{
+    $categories = Category::with('subCategories')->get();
 
-        return Inertia::render('Admin/Categories/index', [
-            'categories' => $categories
-        ]);
-    }
+    return Inertia::render('Admin/Categories/Index', [
+        'categories' => $categories
+    ]);
+}
+   public function store(Request $request)
+{
+    $request->validate([
+        'nama_kategori' => 'required|string|max:255',
+        'nama_subkategori' => 'required|string|max:255',
+    ]);
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'kategori' => 'required|string|max:255',
-            'nama_kategori' => 'required|string|max:255',
-        ]);
+    // cari atau buat category
+    $category = Category::firstOrCreate([
+        'nama_kategori' => $request->nama_kategori
+    ]);
 
-        Category::create([
-            'kategori' => $request->kategori,
-            'nama_kategori' => $request->nama_kategori,
-        ]);
+    // simpan sub category
+    \App\Models\SubCategory::create([
+        'category_id' => $category->id,
+        'nama_subkategori' => $request->nama_subkategori
+    ]);
 
-        return redirect()
-            ->route('admin.categories.index')
-            ->with('success', 'Kategori berhasil ditambahkan');
-    }
+    return redirect()->back();
+}
 
     public function update(Request $request, $id)
     {
