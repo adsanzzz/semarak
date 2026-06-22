@@ -23,7 +23,9 @@ class ProductController extends Controller
 
 public function index()
 {
-    $produk = Product::with('category')->get();
+    $produk = Product::where('is_active', true)->with(['category', 'orders' => function ($query) {
+        $query->completedReviews();
+    }])->get();
     $categories = Category::all()->map(function ($category) {
         return [
             'id' => $category->id,
@@ -33,6 +35,8 @@ public function index()
 
     return Inertia::render('LihatProduk', [
         'produkList' => $produk->map(function ($item) {
+            $ratings = $item->orders->pluck('rating')->filter();
+
             return [
                 'id' => $item->id,
                 'nama' => $item->nama,
@@ -40,7 +44,8 @@ public function index()
                 'harga' => 'Rp ' . number_format($item->harga),
                 'hargaCoret' => null,
                 'image' => $item->image ? asset('storage/' . $item->image) : null,
-                'rating' => 5,
+                'rating' => $ratings->count() ? round($ratings->avg(), 1) : null,
+                'rating_count' => $ratings->count(),
                 'terjual' => $item->terjual ?? 0,
                 'toko' => 'Toko Kamu',
                 'jarak' => '1 km',
@@ -189,7 +194,10 @@ return Inertia::render('User/KelolaProduk', [
 
 public function show($id)
 {
-    $produk = Product::with(['category', 'subCategory', 'user'])->findOrFail($id);
+    $produk = Product::where('is_active', true)->with(['category', 'subCategory', 'user', 'orders' => function ($query) {
+        $query->completedReviews();
+    }])->findOrFail($id);
+    $ratings = $produk->orders->pluck('rating')->filter();
 
     return Inertia::render('User/DetailProduk', [
         'produk' => [
@@ -206,6 +214,8 @@ public function show($id)
             'kategori'  => $produk->category?->nama_kategori ?? '-',
             'category'  => $produk->category,
             'sub_category' => $produk->subCategory,
+            'rating'    => $ratings->count() ? round($ratings->avg(), 1) : null,
+            'rating_count' => $ratings->count(),
         ]
     ]);
 

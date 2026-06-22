@@ -37,9 +37,7 @@ function closeDropdown() {
                 >
                     <!-- Text -->
                     <div class="flex-1 space-y-4">
-                        <h1
-                            class="text-3xl md:text-4xl font-bold text-gray-800"
-                        >
+                        <h1 class="text-3xl md:text-4xl font-bold text-gray-800">
                             Selamat Datang di Semarak!
                         </h1>
                         <p class="text-gray-600">
@@ -47,11 +45,11 @@ function closeDropdown() {
                             Lokal!!
                         </p>
                         <Link
-    :href="route('produk.lihat')"
-    class="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 inline-block"
->
-    Lihat Semua Produk →
-</Link>
+                            :href="route('produk.lihat')"
+                            class="inline-block rounded bg-blue-600 px-6 py-3 text-white hover:bg-blue-700"
+                        >
+                            Lihat Semua Produk →
+                        </Link>
                     </div>
 
                     <!-- Image -->

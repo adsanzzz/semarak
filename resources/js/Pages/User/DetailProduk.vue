@@ -1,10 +1,12 @@
 <script setup>
 import { usePage, router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import NavbarAuth from '@/Components/NavbarAuth.vue'
 
 // Ambil data dari controller
 const { produk } = usePage().props
+const isAuthenticated = computed(() => !!usePage().props.auth?.user)
+const chatSellerUrl = computed(() => route('chat.start', { seller: produk.user_id, product_id: produk.id }))
 
 // Notifikasi
 const notif = ref(null)
@@ -16,6 +18,11 @@ function showNotif(message, type = 'success') {
 
 // Tambah ke keranjang
 function tambahKeranjang() {
+  if (!isAuthenticated.value) {
+    router.get(route('login'))
+    return
+  }
+
   router.post('/keranjang', {
     product_id: produk.id
   }, {
@@ -26,6 +33,18 @@ function tambahKeranjang() {
     onError: () => {
       showNotif('Gagal menambahkan ke keranjang', 'error')
     }
+  })
+}
+
+function beliSekarang() {
+  if (!isAuthenticated.value) {
+    router.get(route('login'))
+    return
+  }
+
+  router.post(route('checkout.prepare.product'), {
+    product_id: produk.id,
+    qty: 1,
   })
 }
 </script>
@@ -85,6 +104,13 @@ function tambahKeranjang() {
             Kategori: {{ produk.kategori || '-' }}
           </p>
 
+          <p class="text-sm text-gray-500">
+            Rating:
+            <span v-if="produk.rating" class="text-yellow-500 font-semibold">★ {{ produk.rating }}</span>
+            <span v-else>Belum ada ulasan</span>
+            <span v-if="produk.rating_count">({{ produk.rating_count }} ulasan)</span>
+          </p>
+
           <!-- Harga -->
           <p class="text-3xl font-bold text-blue-600">
             Rp {{ Number(produk.harga).toLocaleString() }}
@@ -116,18 +142,20 @@ function tambahKeranjang() {
             </button>
 
             <button
+              @click="beliSekarang"
               class="border border-gray-300 px-4 py-2 rounded-lg flex-1 hover:bg-gray-100"
             >
               Beli Sekarang
             </button>
 
-             <!-- TOMBOL CHAT -->
-  <a
-    :href="route('chat.start', produk.user_id)"
-    class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-center flex-1"
-  >
-    💬 Chat Penjual
-  </a>
+            <!-- TOMBOL CHAT -->
+            <a
+              v-if="isAuthenticated"
+              :href="chatSellerUrl"
+              class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-center flex-1"
+            >
+              💬 Chat Penjual
+            </a>
 
           </div>
 

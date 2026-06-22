@@ -6,6 +6,7 @@ import { Link, usePage } from "@inertiajs/vue3";
 import {
   HomeIcon,
   ShoppingBagIcon,
+  ArchiveBoxIcon,
   ShoppingCartIcon,
   Cog6ToothIcon,
   StarIcon,
@@ -21,50 +22,46 @@ const openSubmenu = ref(null); // track submenu terbuka
 
 // Hanya tampil jika user toko
 const page = usePage();
+const user = computed(() => page.props.auth?.user || {});
+const userRole = computed(() => Number(user.value.role || 0));
 
 // Data menu dinamis sesuai role
 const menus = computed(() => {
-  if (user.value.role === 3) {
+  if (userRole.value === 3) {
     // Buyer
     return [
       { name: "Pesanan Saya", icon: ShoppingBagIcon, route: route('user.riwayat-pemesanan') },
       { name: "Keranjang Saya", icon: ShoppingCartIcon, route: "/keranjang" },
-      {
-        name: "Pengaduan & Komplain",
-        icon: StarIcon,
-        route: "/pengaduan",
-        children: [
-  { name: "Daftar Pengaduan", route: "/pengaduan" },
-  { name: "Daftar Komplain", route: "/komplain" },
-],
-      },
-      // Tidak ada Kelola Promo
-      { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
+      { name: "Kelola Pengaduan & Komplain", icon: StarIcon, route: route('pengaduan') },
     ];
-  } else {
-    // Toko/admin
+  } else if (userRole.value === 1) {
+    // Admin
+    return [
+      { name: "Dashboard", icon: HomeIcon, route: route('admin.dashboard') },
+      { name: "Kelola Kategori", icon: TicketIcon, route: route('admin.categories.index') },
+      { name: "Kelola Produk", icon: ArchiveBoxIcon, route: route('admin.products') },
+      { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: route('admin.orders') },
+      { name: "Sertifikasi", icon: TicketIcon, route: route('admin.sertifikasi.index') },
+      { name: "Kelola Akun", icon: Cog6ToothIcon, route: route('admin.users.index') },
+      { name: "Kelola Pengaduan Komplain", icon: StarIcon, route: route('admin.komplain') },
+    ];
+    } else {
+    // Toko
     return [  
       { name: "Dashboard", icon: HomeIcon, route: "/dashboard" },
       { name: "Kelola Produk", icon: ShoppingBagIcon, route: route('user.products') },
       { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: route('user.orders') },
-      {
-        name: "Pengaduan & Komplain",
-        icon: StarIcon,
-        route: "/pengaduan",
-        children: [
-          { name: "Daftar Pengaduan", route: "/pengaduan" },
-          { name: "Daftar Komplain", route: "/komplain" },
-        ],
-      },
-      { name: "Pengaturan", icon: Cog6ToothIcon, route: "/settings" },
+      { name: "Ulasan", icon: StarIcon, route: route('user.reviews') },
+      { name: "Chat", icon: TicketIcon, route: route('chat.index') },
+      { name: "Kelola Pengaduan & Komplain", icon: StarIcon, route: route('pengaduan') },
     ];
   }
 });
 
 // Deteksi route aktif
 const currentUrl = page.url;
-const user = computed(() => page.props.auth?.user || {});
-const isToko = computed(() => user.value.role === 2);
+const isToko = computed(() => userRole.value === 2);
+const chatUnreadCount = computed(() => page.props.chat_unread_count || 0);
 
 // Toggle submenu
 const toggleSubmenu = (name) => {
@@ -135,10 +132,10 @@ const toggleSubmenu = (name) => {
               :key="child.name"
               :href="child.route"
               :class="[
-                'block px-3 py-2 rounded-lg text-sm transition',
+                  'block px-3 py-2 rounded-lg text-sm transition',
                 currentUrl.startsWith(child.route)
-                  ? 'bg-yellow-200 text-black'
-                  : 'text-gray-600 hover:bg-yellow-100'
+                    ? 'bg-yellow-200 text-black'
+                    : 'text-gray-600 hover:bg-yellow-100'
               ]"
             >
               {{ child.name }}
@@ -151,7 +148,7 @@ const toggleSubmenu = (name) => {
           v-if="!menu.children"
           :href="menu.route"
           :class="[
-            'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group',
+            'relative flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group',
             currentUrl.startsWith(menu.route)
               ? 'bg-yellow-300 text-white'
               : 'hover:bg-yellow-100'
@@ -166,6 +163,13 @@ const toggleSubmenu = (name) => {
           />
           <span v-show="isOpen" class="text-sm font-medium">
             {{ menu.name }}
+          </span>
+
+          <span
+            v-if="menu.name === 'Chat' && chatUnreadCount > 0"
+            class="absolute top-2 right-3 min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center"
+          >
+            {{ chatUnreadCount > 99 ? '99+' : chatUnreadCount }}
           </span>
         </Link>
       </div>

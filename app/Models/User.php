@@ -22,9 +22,35 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'is_active',
         'phone',
         'nama_toko',
-        'alamat_toko',
+        'nik_penjual',
+        'nama_lengkap_penjual',
+        'alamat_penjual',
+        'provinsi',
+        'kabupaten',
+        'kecamatan',
+        'kelurahan',
+        'kategori_usaha',
+        'modal_usaha',
+        'omset_tahun',
+        'sertifikasi_jenis',
+        'sertifikasi_file',
+        'sertifikasi_status',
+        'sertifikasi_halal',
+        'sertifikasi_haki',
+        'sosmed',
+        'sosmed_instagram',
+        'sosmed_tiktok',
+        'sosmed_platform',
+        'tautan_marketplace',
+        'informasi_kemitraan',
+        'pelatihan_usaha',
+        'bank_tujuan',
+        'nama_rekening',
+        'norek',
+        'qris_image',
     ];
 
     /**
@@ -47,6 +73,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_active' => 'boolean',
         ];
     }
 }

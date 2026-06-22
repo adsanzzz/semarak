@@ -22,6 +22,7 @@ class Product extends Model
         'warna',
         'ukuran',
         'berat',
+        'is_active',
     ];
 
     // Relasi ke User (pemilik produk)
@@ -38,6 +39,11 @@ class Product extends Model
 
 public function subCategory()
 {
-    return $this->belongsTo(SubCategory::class);
+    return $this->belongsTo(SubCategory::class, 'sub_kategori_id');
 }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
 }

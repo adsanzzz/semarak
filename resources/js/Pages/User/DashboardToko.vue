@@ -3,46 +3,21 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import { Head } from '@inertiajs/vue3'
 import Sidebar from '@/Components/Sidebar.vue'
 
-// chartjs
-import { Pie } from 'vue-chartjs'
-import { Chart as ChartJS, Title, Tooltip, Legend, ArcElement } from 'chart.js'
-import { computed } from 'vue'
-
-ChartJS.register(Title, Tooltip, Legend, ArcElement)
-
 const props = defineProps({
-  categories: { type: Array, default: () => [] },
-  products: { type: Array, default: () => [] },
   stats: {
     type: Object,
     default: () => ({
       totalProduk: 0,
-      totalKategori: 0,
+      totalPesanan: 0,
       totalPenjualan: 0,
       totalPendapatan: 0
     })
   },
-  topProducts: { // data produk terlaris
+  topProducts: {
     type: Array,
     default: () => []
-  },
-  totalSales: { // total penjualan (rupiah)
-    type: Number,
-    default: 0
   }
 })
-
-// chart data untuk produk terlaris
-const chartData = computed(() => ({
-  labels: props.topProducts.map(p => p.nama),
-  datasets: [
-    {
-      label: 'Jumlah Dibeli',
-      data: props.topProducts.map(p => p.jumlah),
-      backgroundColor: ['#2563eb', '#f59e0b', '#f97316', '#facc15', '#14b8a6']
-    }
-  ]
-}))
 </script>
 
 <template>
@@ -72,9 +47,9 @@ const chartData = computed(() => ({
                 <h3 class="text-lg font-bold">{{ stats.totalProduk }}</h3>
               </div>
               <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
-                <span class="text-3xl">📂</span>
-                <p class="mt-2 text-gray-500 text-sm">Total Kategori</p>
-                <h3 class="text-lg font-bold">{{ stats.totalKategori }}</h3>
+                <span class="text-3xl">📑</span>
+                <p class="mt-2 text-gray-500 text-sm">Total Pesanan</p>
+                <h3 class="text-lg font-bold">{{ stats.totalPesanan }}</h3>
               </div>
               <div class="bg-white p-6 rounded-xl shadow-md flex flex-col items-center">
                 <span class="text-3xl">🛒</span>
@@ -88,63 +63,35 @@ const chartData = computed(() => ({
               </div>
             </div>
 
-            <!-- 📌 Produk & Produk Terlaris -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              <!-- 📌 Produk di Marketplace (tabel) -->
-              <div class="bg-white rounded-xl shadow-md p-6 lg:col-span-2">
+            <!-- 📌 List Produk Terlaris -->
+            <div class="bg-white rounded-xl shadow-md p-6">
                 <div class="flex justify-between items-center mb-4">
-                  <h3 class="text-xl font-bold">Pesanan Terbaru</h3>
-                  <button class="text-sm text-blue-600 hover:underline">Lihat Semua</button>
+                  <h3 class="text-xl font-bold">Produk Terlaris</h3>
                 </div>
                 <div class="overflow-x-auto">
                   <table class="min-w-full text-sm">
                     <thead>
                       <tr class="text-left text-gray-500 border-b">
-                        <th class="py-2 px-3">Nama Item</th>
-                        <th class="py-2 px-3">Tanggal</th>
-                        <th class="py-2 px-3">Total</th>
-                        <th class="py-2 px-3">Status</th>
+                        <th class="py-2 px-3">No</th>
+                        <th class="py-2 px-3">Nama Produk</th>
+                        <th class="py-2 px-3">Total Terjual</th>
+                        <th class="py-2 px-3">Total Pendapatan</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="p in products" :key="p.id" class="border-b hover:bg-gray-50">
-                        <td class="py-2 px-3">{{ p.nama }}</td>
-                        <td class="py-2 px-3">{{ p.tanggal }}</td>
-                        <td class="py-2 px-3">Rp{{ Number(p.harga).toLocaleString('id-ID') }}</td>
-                        <td class="py-2 px-3">
-                          <span class="px-2 py-1 rounded text-xs"
-                                :class="p.status === 'Sedang Dikirim' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'">
-                            {{ p.status }}
-                          </span>
-                        </td>
+                      <tr v-for="product in topProducts" :key="product.product_id" class="border-b hover:bg-gray-50">
+                        <td class="py-2 px-3">{{ product.rank }}</td>
+                        <td class="py-2 px-3">{{ product.nama }}</td>
+                        <td class="py-2 px-3">{{ product.total_terjual }}</td>
+                        <td class="py-2 px-3">Rp{{ Number(product.total_pendapatan).toLocaleString('id-ID') }}</td>
+                      </tr>
+                      <tr v-if="topProducts.length === 0">
+                        <td colspan="4" class="py-6 px-3 text-center text-gray-500">Belum ada produk terjual.</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
-
-              <!-- 📌 Produk Terlaris -->
-              <div class="bg-white rounded-xl shadow-md p-6">
-                <h3 class="text-sm text-gray-500 mb-1">Produk Terlaris</h3>
-                <h2 class="text-2xl font-bold text-blue-600 mb-4">
-                  Rp {{ Number(totalSales).toLocaleString('id-ID') }}
-                  <span class="text-sm text-gray-500 font-normal">— Total Penjualan</span>
-                </h2>
-
-                <div class="space-y-2 mb-4">
-                  <div v-for="(prod, i) in topProducts" :key="i" class="flex justify-between text-sm">
-                    <span class="px-2 py-1 rounded bg-gray-100">{{ prod.nama }}</span>
-                    <span class="text-gray-500">{{ prod.jumlah }}x Dibeli</span>
-                  </div>
-                </div>
-
-                <div style="height:250px">
-                  <Pie :data="chartData" :options="{ responsive: true, maintainAspectRatio: false }" />
-                </div>
-              </div>
-
-            </div>
 
           </div>
         </div>

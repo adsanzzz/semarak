@@ -17,9 +17,11 @@ use App\Http\Controllers\User\CheckoutController;
 use App\Http\Controllers\Admin\CategoryController as AdminCategoryController;
 use App\Http\Controllers\Admin\SubCategoryController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\User\ChatController;
 use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ComplaintController;
+use App\Http\Controllers\PaymentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -74,16 +76,29 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // PESANAN
     Route::get('/pesanan', [BuyerController::class, 'kelolaPesanan'])->name('user.orders');
     Route::get('/riwayat-pemesanan', [BuyerController::class, 'riwayatPemesanan'])->name('user.riwayat-pemesanan');
+    Route::post('/orders/{id}/accept', [OrderController::class, 'accept'])
+        ->name('orders.accept');
+    Route::post('/orders/{id}/reject', [OrderController::class, 'reject'])
+        ->name('orders.reject');
     Route::post('/orders/{id}/status', [OrderController::class, 'updateStatus'])
     ->name('orders.updateStatus');
+
+    Route::post('/orders/{id}/review', [OrderController::class, 'review'])
+        ->name('orders.review');
+
+    // Ulasan (untuk penjual melihat dan membalas)
+    Route::get('/toko/ulasan', [\App\Http\Controllers\User\ReviewController::class, 'index'])
+        ->name('user.reviews');
+
+    Route::post('/toko/ulasan/{order}/reply', [\App\Http\Controllers\User\ReviewController::class, 'reply'])
+        ->name('user.reviews.reply');
 
 Route::delete('/orders/{id}', [OrderController::class, 'destroy'])
     ->name('orders.destroy');
 
     // PENGADUAN & KOMPLAIN
-    Route::get('/pengaduan', function () {
-        return Inertia::render('PengaduanKomplain');
-    })->name('pengaduan');
+    Route::get('/pengaduan', [ComplaintController::class, 'create'])->name('pengaduan');
+    Route::post('/pengaduan', [ComplaintController::class, 'store'])->name('pengaduan.store');
 
     // LIVE CHAT
     Route::get('/live-chat', function () {
@@ -101,12 +116,26 @@ Route::delete('/orders/{id}', [OrderController::class, 'destroy'])
     // CHECKOUT
     Route::middleware(['auth'])->group(function () {
 
+    Route::get('/checkout', [CheckoutController::class, 'index'])
+        ->name('checkout.index');
+
+    Route::post('/checkout/prepare/product', [CheckoutController::class, 'prepareFromProduct'])
+        ->name('checkout.prepare.product');
+
+    Route::post('/checkout/prepare/cart', [CheckoutController::class, 'prepareFromCart'])
+        ->name('checkout.prepare.cart');
+
     Route::post('/checkout', [CheckoutController::class, 'store'])
         ->name('checkout.store');
 
     Route::get('/checkout-success', function () {
-        return Inertia::render('CheckoutSuccess');
+        return Inertia::render('CheckoutSuccess', [
+            'checkoutResult' => session('checkout_result'),
+        ]);
     })->name('checkout.success');
+
+    Route::post('/checkout/qris/confirm', [CheckoutController::class, 'confirmQrisPayment'])
+        ->name('checkout.qris.confirm');
 
 });
 
@@ -134,6 +163,12 @@ Route::middleware(['auth'])->group(function () {
 
     Route::post('/chat/{id}', [ChatController::class, 'send'])
         ->name('chat.send');
+
+    Route::delete('/chat/{id}/messages/all', [ChatController::class, 'deleteAllMessages'])
+        ->name('chat.messages.deleteAll');
+
+    Route::delete('/chat/{id}/messages', [ChatController::class, 'deleteSelectedMessages'])
+        ->name('chat.messages.deleteSelected');
 });
 
 });
@@ -166,24 +201,40 @@ Route::controller(SubCategoryController::class)->group(function () {
 
     // 👤 USERS
     Route::controller(\App\Http\Controllers\Admin\UserController::class)->group(function () {
-        Route::get('/users', 'index')->name('admin.users.index');
-        Route::delete('/users/{id}', 'destroy')->name('admin.users.destroy');
+        Route::get('/users', 'index')->name('users.index');
+        Route::delete('/users/{id}', 'destroy')->name('users.destroy');
+        Route::post('/users/{id}/deactivate', 'deactivate')->name('users.deactivate');
+        Route::post('/users/{id}/activate', 'activate')->name('users.activate');
     });
 
     // 📦 HISTORI PESANAN
-    Route::get('/orders', [AdminDashboardController::class, 'ordersHistory'])
-        ->name('admin.orders');
+    Route::get('/orders', [AdminController::class, 'orders'])
+        ->name('orders');
+
+    // 📜 SERTIFIKASI TOKO
+    Route::get('/sertifikasi', [AdminController::class, 'certifications'])
+        ->name('sertifikasi.index');
+    Route::post('/sertifikasi/{id}/approve', [AdminController::class, 'approveCertification'])
+        ->name('sertifikasi.approve');
+    Route::post('/sertifikasi/{id}/reject', [AdminController::class, 'rejectCertification'])
+        ->name('sertifikasi.reject');
 
     // 📢 KOMPLAIN
-    Route::get('/komplain', [KomplainController::class, 'index'])
-        ->name('admin.komplain');
+    Route::get('/komplain', [AdminController::class, 'complaints'])
+        ->name('komplain');
+    Route::post('/komplain', [AdminController::class, 'storeComplaint'])
+        ->name('komplain.store');
+    Route::post('/komplain/{id}/forward', [AdminController::class, 'forwardComplaint'])
+        ->name('komplain.forward');
+    Route::post('/komplain/{id}/reply', [AdminController::class, 'replyComplaint'])
+        ->name('komplain.reply');
 
     // 🛍️ PRODUK
-    Route::get('/products', [AdminDashboardController::class, 'products'])
-        ->name('admin.products');
+    Route::get('/products', [AdminController::class, 'products'])
+        ->name('products');
 
-    Route::delete('/products/{id}', [AdminDashboardController::class, 'deleteProduct'])
-        ->name('admin.products.destroy');
+    Route::post('/products/{id}/deactivate', [AdminController::class, 'deactivateProduct'])
+        ->name('products.deactivate');
 
 });
 
@@ -211,3 +262,7 @@ Route::post('/set-nomor-wa', function(Request $request) {
     session(['nomor_wa_penjual' => $request->nomor_wa]);
     return response()->json(['success' => true]);
 });
+
+//QRISS
+Route::get('/create-qris', [PaymentController::class, 'createQRIS']);
+Route::post('/create-qris', [PaymentController::class, 'createQRIS']);

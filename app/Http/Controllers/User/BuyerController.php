@@ -8,22 +8,20 @@ use App\Models\Order;
 use Inertia\Inertia;
 use App\Models\Product;
 use App\Models\Category;
+use Illuminate\Support\Facades\DB;
 
 class BuyerController extends Controller
 {
     public function dashboard()
     {
         $user = auth()->user();
-        $products = Product::latest()->get();
+        $products = Product::where('is_active', true)->latest()->get();
 
         return match ($user->role) {
             1 => Inertia::render('Admin/AdminDashboard', [
                 'categories' => Category::all(),
             ]),
-            2 => Inertia::render('User/DashboardToko', [
-                'categories' => Category::all(),
-                'products'   => $products,
-            ]),
+            2 => $this->dashboardToko($user->id),
             3 => Inertia::render('User/DashboardBuyer', [
                 'products' => $products,
             ]),
@@ -35,22 +33,42 @@ class BuyerController extends Controller
 
    public function kelolaPesanan()
 {
-    $orders = \App\Models\Order::with('product', 'buyer')->get();
+    $orders = \App\Models\Order::with(['product', 'buyer'])
+        ->whereHas('product', function ($query) {
+            $query->where('user_id', auth()->id());
+        })
+        ->latest()
+        ->get();
 
     return Inertia::render('Buyer/KelolaPesanan', [
         'orders' => $orders
     ]);
 }
 
-    public function lihatProduk()
+    public function lihatProduk(Request $request)
     {
-        $products = Product::with('category', 'user')->latest()->get()->map(function ($p) {
+        $search = trim((string) $request->query('q', ''));
+
+        $query = Product::where('is_active', true)->with(['category', 'user', 'orders' => function ($orderQuery) {
+            $orderQuery->completedReviews();
+        }]);
+
+        if ($search !== '') {
+            $query->where(function ($productQuery) use ($search) {
+                $productQuery->where('nama', 'like', '%' . $search . '%');
+            });
+        }
+
+        $products = $query->latest()->get()->map(function ($p) {
+            $ratings = $p->orders->pluck('rating')->filter();
+
             return [
                 'id'        => $p->id,
                 'nama'      => $p->nama,
                 'toko'      => $p->user?->name ?? '-',
-                'rating'    => 4.8,
-                'terjual'   => 100,
+                'rating'    => $ratings->count() ? round($ratings->avg(), 1) : null,
+                'rating_count' => $ratings->count(),
+                'terjual'   => $p->terjual ?? 0,
                 'kategori'  => $p->category?->nama_kategori ?? '-',
                 'hargaCoret'=> null,
                 'harga'     => 'Rp ' . number_format($p->harga, 0, ',', '.'),
@@ -62,15 +80,16 @@ class BuyerController extends Controller
         return Inertia::render('User/LihatProduk', [
             'produkList' => $products,
             'categories' => Category::all(),
+            'search' => $search,
         ]);
     }
 
     public function riwayatPemesanan()
     {
-        $userId = auth()->id();
-        $orders = Order::where('user_id', auth()->id())
-    ->latest()
-    ->get();
+        $orders = Order::with(['product.user', 'buyer'])
+            ->where('buyer_id', auth()->id())
+            ->latest()
+            ->get();
 
         return Inertia::render('User/RiwayatPemesanan', [
             'orders' => $orders,
@@ -80,6 +99,60 @@ class BuyerController extends Controller
     public function promoBuyer()
     {
         return Inertia::render('User/PromoBuyer');
+    }
+
+    private function dashboardToko(int $userId)
+    {
+        $storeProductsQuery = Product::query()->where('user_id', $userId);
+
+        $storeOrdersQuery = Order::query()
+            ->whereHas('product', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            });
+
+        $validSalesOrdersQuery = (clone $storeOrdersQuery)
+            ->where(function ($query) {
+                $query->whereNull('review_status')
+                    ->orWhere('review_status', '!=', 'ditolak');
+            })
+            ->where('status', '!=', 'dibatalkan');
+
+        $totalProduk = (clone $storeProductsQuery)->count();
+        $totalPesanan = (int) ((clone $storeOrdersQuery)->count() ?? 0);
+        $totalPenjualan = (int) ((clone $validSalesOrdersQuery)->sum('jumlah') ?? 0);
+        $totalPendapatan = (float) ((clone $validSalesOrdersQuery)->sum('total_harga') ?? 0);
+
+        $topProducts = (clone $validSalesOrdersQuery)
+            ->select(
+                'product_id',
+                DB::raw('SUM(jumlah) as total_terjual'),
+                DB::raw('SUM(total_harga) as total_pendapatan')
+            )
+            ->with('product:id,nama,harga')
+            ->groupBy('product_id')
+            ->orderByDesc('total_terjual')
+            ->limit(10)
+            ->get()
+            ->map(function ($row, $index) {
+                return [
+                    'rank' => $index + 1,
+                    'product_id' => $row->product_id,
+                    'nama' => $row->product?->nama ?? '-',
+                    'total_terjual' => (int) $row->total_terjual,
+                    'total_pendapatan' => (float) $row->total_pendapatan,
+                ];
+            })
+            ->values();
+
+        return Inertia::render('User/DashboardToko', [
+            'stats' => [
+                'totalProduk' => $totalProduk,
+                'totalPesanan' => $totalPesanan,
+                'totalPenjualan' => $totalPenjualan,
+                'totalPendapatan' => $totalPendapatan,
+            ],
+            'topProducts' => $topProducts,
+        ]);
     }
     
 }

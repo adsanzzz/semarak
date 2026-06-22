@@ -10,6 +10,7 @@ const isAuthenticated = computed(() => !!page.props.auth?.user)
 // Produk dari props Inertia
 const produkList = page.props.produkList || [];
 const categories = computed(() => page.props.categories || []);
+const searchTerm = computed(() => (page.props.search || '').trim())
 
 const selectedKategori = ref([]);
 
@@ -63,6 +64,10 @@ function viewProduk(id) {
         <span class="font-medium text-gray-700">Semua Produk</span>
       </nav>
 
+      <div v-if="searchTerm" class="mb-6 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-700">
+        Hasil pencarian untuk: <span class="font-semibold">{{ searchTerm }}</span>
+      </div>
+
       <div class="flex gap-8">
         <!-- Sidebar Filter -->
         <aside class="w-64 space-y-6">
@@ -108,7 +113,13 @@ function viewProduk(id) {
 
               <div class="space-y-1">
                 <div class="flex items-center text-yellow-400 text-sm">
-                  ★ {{ produk.rating }}
+                  <template v-if="produk.rating">
+                    ★ {{ produk.rating }}
+                    <span class="text-gray-500 ml-2 text-xs">
+                      ({{ produk.rating_count || 0 }} ulasan)
+                    </span>
+                  </template>
+                  <span v-else class="text-gray-400">Belum ada ulasan</span>
                   <span class="text-gray-500 ml-2 text-xs">
                     {{ produk.terjual }} Terjual
                   </span>

@@ -8,9 +8,25 @@ class Order extends Model
 {
     protected $fillable = [
         'product_id',
+        'user_id',
         'buyer_id',
         'jumlah',
-        'status'
+        'total_harga',
+        'review_status',
+        'rejection_reason',
+        'status',
+        'shipping_method',
+        'delivery_location',
+        'payment_method',
+        'payment_status',
+        'rating',
+        'review_text',
+        'reviewed_at',
+    ];
+
+    protected $casts = [
+        'rating' => 'integer',
+        'reviewed_at' => 'datetime',
     ];
 
     public function product()
@@ -21,5 +37,10 @@ class Order extends Model
     public function buyer()
     {
         return $this->belongsTo(User::class, 'buyer_id');
+    }
+
+    public function scopeCompletedReviews($query)
+    {
+        return $query->where('status', 'selesai')->whereNotNull('rating');
     }
 }

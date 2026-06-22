@@ -10,6 +10,13 @@ import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
 
 const showingNavigationDropdown = ref(false);
 
+defineProps({
+    withSidebarOffset: {
+        type: Boolean,
+        default: true,
+    },
+});
+
 function logout() {
     router.post(route('logout'))
 }
@@ -19,7 +26,7 @@ function logout() {
 
 <template>
     <div>
-    <div class="min-h-screen bg-gray-100 pl-64">
+    <div :class="['min-h-screen bg-gray-100', withSidebarOffset ? 'pl-64' : 'pl-0']">
             <nav
                 class="border-b border-gray-100 bg-white"
             >

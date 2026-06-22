@@ -1,5 +1,5 @@
 <script setup>
-import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
+import AdminLayout from '@/Layouts/AdminLayout.vue'
 import { Head, router } from '@inertiajs/vue3'
 
 const props = defineProps({
@@ -15,11 +15,8 @@ function deleteUser(id) {
 
 <template>
   <Head title="Kelola User" />
-  <AuthenticatedLayout>
-    <template #header>
-      <h2 class="text-xl font-semibold leading-tight text-gray-800">Kelola User</h2>
-    </template>
-    <div class="py-8 max-w-5xl mx-auto">
+  <AdminLayout>
+    <div class="p-6">
       <table class="w-full border">
         <thead>
           <tr class="bg-gray-100">
@@ -48,5 +45,5 @@ function deleteUser(id) {
         </tbody>
       </table>
     </div>
-  </AuthenticatedLayout>
+  </AdminLayout>
 </template>

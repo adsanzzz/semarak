@@ -25,6 +25,14 @@ class ProfileUpdateRequest extends FormRequest
                 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
+            'phone' => ['nullable', 'string', 'max:50'],
+            'nik_penjual' => ['nullable', 'digits:16'],
+            'sertifikasi_jenis' => ['nullable', 'in:halal,haki'],
+            'sertifikasi_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:4096'],
+            'sertifikasi_status' => ['nullable', 'in:pending,approved,rejected'],
+            'sosmed_instagram' => ['nullable', 'url', 'max:255'],
+            'sosmed_tiktok' => ['nullable', 'url', 'max:255'],
+            'qris_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }

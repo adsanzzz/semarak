@@ -71,14 +71,14 @@
         <div class="text-lg font-semibold">
           Total: Rp {{ formatCurrency(totalPrice) }}
         </div>
-        <a
-          :href="selectedItems.length ? `https://wa.me/${nomorWa}?text=${waDraft}` : '#'"
-          target="_blank"
+        <button
+          @click="proceedCheckout"
           class="px-6 py-2 rounded-lg flex items-center gap-2"
-          :class="selectedItems.length ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-500 pointer-events-none'"
+          :class="selectedItems.length ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-gray-200 text-gray-500 cursor-not-allowed'"
+          :disabled="!selectedItems.length"
         >
           Checkout
-        </a>
+        </button>
       </div>
     </div>
   </div>
@@ -86,35 +86,13 @@
 
 <script setup>
 import { ref, computed } from "vue"
-import { usePage } from "@inertiajs/vue3"
+import { usePage, router } from "@inertiajs/vue3"
 import NavbarAuth from "@/Components/NavbarAuth.vue"
 
 // Ambil items dari props Inertia dan buat reactive
 const rawItems = usePage().props.items || []
 // ensure each item has a `selected` property (default true)
 const items = ref(rawItems.map(i => ({ ...i, selected: true })))
-
-// Nomor WA penjual dari produk pertama selected item
-const nomorWa = computed(() => {
-  const first = items.value.find(it => it.selected)
-  if (!first) return ''
-  const phone = first.penjual_phone || ''
-  let nomor = phone.replace(/[^0-9]/g, '')
-  if (nomor.startsWith('0')) nomor = '62' + nomor.slice(1)
-  return nomor
-})
-
-// Draft pesan WhatsApp (only selected items)
-const waDraft = computed(() => {
-  if (selectedItems.value.length === 0) return ''
-  let pesan = "Halo, saya ingin memesan produk berikut:\n"
-  selectedItems.value.forEach(item => {
-    pesan += `- ${item.name} x${item.qty} (Rp ${formatCurrency(item.price)})\n`
-  })
-  pesan += `\nTotal: Rp ${formatCurrency(totalPrice.value)}`
-  pesan += "\nMohon konfirmasi pesanan saya. Terima kasih."
-  return encodeURIComponent(pesan)
-})
 
 // Items selected for checkout
 const selectedItems = computed(() => items.value.filter(i => i.selected))
@@ -127,6 +105,17 @@ const totalPrice = computed(() =>
 // Hapus item
 function removeItem(index) {
   items.value.splice(index, 1)
+}
+
+function proceedCheckout() {
+  if (selectedItems.value.length === 0) return
+
+  router.post(route('checkout.prepare.cart'), {
+    items: selectedItems.value.map((item) => ({
+      product_id: item.id,
+      qty: item.qty,
+    })),
+  })
 }
 
 // Format angka jadi Rupiah

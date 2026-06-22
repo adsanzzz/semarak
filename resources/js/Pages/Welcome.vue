@@ -1,5 +1,6 @@
 <script setup>
 import GuestLayout from '@/Layouts/GuestLayout.vue'
+import { Link } from '@inertiajs/vue3'
 import { ref, onMounted } from "vue";
 
 const cartCount = ref(3);
@@ -132,11 +133,12 @@ const produkList = [
                         Pasar Digital UMKM Karanganyar, Belanja Mudah, Dukung
                         Lokal!!
                     </p>
-                    <button
-                        class="px-6 py-3 bg-blue-600 text-white rounded hover:bg-navy-700"
+                    <Link
+                        :href="route('produk.lihat')"
+                        class="inline-block rounded bg-blue-600 px-6 py-3 text-white hover:bg-navy-700"
                     >
                         Lihat Semua Produk →
-                    </button>
+                    </Link>
                 </div>
 
                 <!-- Image -->

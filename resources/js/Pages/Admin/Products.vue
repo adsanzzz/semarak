@@ -6,11 +6,11 @@ const props = defineProps({
   products: Array,
 })
 
-function deleteProduct(id) {
-  if (confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
-    router.delete(route('admin.products.destroy', id), {
+function deactivateProduct(id) {
+  if (confirm('Apakah Anda yakin ingin menonaktifkan produk ini?')) {
+    router.post(route('admin.products.deactivate', id), {}, {
       onSuccess: () => {
-        // Reload page or show success
+        router.reload({ only: ['products'] })
       }
     })
   }
@@ -22,8 +22,8 @@ function deleteProduct(id) {
 
   <AdminLayout>
     <div class="py-12">
-      <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white overflow-hidden shadow-xl sm:rounded-lg">
+      <div class="p-6">
+    <div class="bg-white shadow rounded-lg p-6">
           <div class="p-6">
             <h1 class="text-2xl font-semibold mb-4">Kelola Produk</h1>
             <p class="text-gray-600 mb-6">Produk yang dijual oleh semua toko, dengan aksi hapus.</p>
@@ -49,10 +49,10 @@ function deleteProduct(id) {
                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ product.stok }}</td>
                     <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <button
-                        @click="deleteProduct(product.id)"
-                        class="text-red-600 hover:text-red-900"
+                        @click="deactivateProduct(product.id)"
+                        class="px-4 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
                       >
-                        Hapus
+                        Non-aktifkan
                       </button>
                     </td>
                   </tr>

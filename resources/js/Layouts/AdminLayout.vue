@@ -4,7 +4,7 @@ import { Link } from '@inertiajs/vue3';
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100">
+    <div class="min-h-screen bg-gray-100 overflow-x-hidden">
 
         <!-- HEADER -->
         <div class="bg-white shadow px-6 py-4 flex justify-between items-center">
@@ -19,13 +19,13 @@ import { Link } from '@inertiajs/vue3';
             </div>
         </div>
 
-        <div class="flex">
+        <div class="flex items-start">
 
             <!-- SIDEBAR -->
-            <Sidebar />
+            <Sidebar class="shrink-0" />
 
             <!-- CONTENT -->
-            <div class="flex-1 ml-64 p-8">
+            <div class="flex-1 p-8">
                 <slot />
             </div>
 

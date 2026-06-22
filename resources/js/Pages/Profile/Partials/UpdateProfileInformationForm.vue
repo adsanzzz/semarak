@@ -4,6 +4,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
+import { ref } from 'vue';
 
 defineProps({
     mustVerifyEmail: {
@@ -15,32 +16,67 @@ defineProps({
 });
 
 const user = usePage().props.auth.user;
+const isSeller = Number(user.role) === 2;
 
 const form = useForm({
     name: user.name,
     email: user.email,
-    nama_toko: user.nama_toko,
     nik_penjual: user.nik_penjual,
-    nama_lengkap_penjual: user.nama_lengkap_penjual,
     phone: user.phone,
-    alamat_penjual: user.alamat_penjual,
-    provinsi: user.provinsi,
-    kabupaten: user.kabupaten,
-    kecamatan: user.kecamatan,
-    kelurahan: user.kelurahan,
-    kategori_usaha: user.kategori_usaha,
-    modal_usaha: user.modal_usaha,
-    omset_tahun: user.omset_tahun,
-    sertifikasi_halal: user.sertifikasi_halal,
-    sertifikasi_haki: user.sertifikasi_haki,
-    sosmed: user.sosmed,
-    tautan_marketplace: user.tautan_marketplace,
-    informasi_kemitraan: user.informasi_kemitraan,
-    pelatihan_usaha: user.pelatihan_usaha,
-    bank_tujuan: user.bank_tujuan,
-    nama_rekening: user.nama_rekening,
-    norek: user.norek,
+    sertifikasi_jenis: user.sertifikasi_jenis || '',
+    sertifikasi_file: null,
+    sosmed_instagram: user.sosmed_instagram || '',
+    sosmed_tiktok: user.sosmed_tiktok || '',
+    qris_image: null,
 });
+
+const sertifikasiPreview = ref(user.sertifikasi_file ? `/storage/${user.sertifikasi_file}` : null);
+const qrisPreview = ref(user.qris_image ? `/storage/${user.qris_image}` : null);
+const sertifikasiFileName = ref(user.sertifikasi_file ? user.sertifikasi_file.split('/').pop() : '')
+
+function sertifikasiStatusLabel(status) {
+    if (status === 'approved') return 'Disetujui';
+    if (status === 'rejected') return 'Ditolak';
+    if (status === 'pending') return 'Menunggu Persetujuan';
+    return 'Belum Diupload';
+}
+
+function sertifikasiStatusClass(status) {
+    if (status === 'approved') return 'bg-green-100 text-green-700 border-green-200';
+    if (status === 'rejected') return 'bg-red-100 text-red-700 border-red-200';
+    if (status === 'pending') return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    return 'bg-gray-100 text-gray-700 border-gray-200';
+}
+
+function onQrisFileChange(event) {
+    const file = event.target.files?.[0] || null;
+    form.qris_image = file;
+
+    if (file) {
+        qrisPreview.value = URL.createObjectURL(file);
+    }
+}
+
+function onSertifikasiFileChange(event) {
+    const file = event.target.files?.[0] || null;
+    form.sertifikasi_file = file;
+    sertifikasiFileName.value = file ? file.name : '';
+
+    if (file) {
+        sertifikasiPreview.value = URL.createObjectURL(file);
+    }
+}
+
+function sanitizeNik(event) {
+    const digitsOnly = (event.target.value || '').replace(/\D/g, '').slice(0, 16);
+    form.nik_penjual = digitsOnly;
+}
+
+function submitProfile() {
+    form.patch(route('profile.update'), {
+        forceFormData: true,
+    });
+}
 </script>
 
 <template>
@@ -56,7 +92,7 @@ const form = useForm({
         </header>
 
         <form
-            @submit.prevent="form.patch(route('profile.update'))"
+            @submit.prevent="submitProfile"
             class="mt-6 space-y-6"
         >
 
@@ -71,113 +107,106 @@ const form = useForm({
                 <InputError class="mt-2" :message="form.errors.email" />
             </div>
             <div class="mt-4">
-                <InputLabel for="nama_toko" value="Nama Toko" />
-                <TextInput id="nama_toko" type="text" class="mt-1 block w-full" v-model="form.nama_toko" />
-                <InputError class="mt-2" :message="form.errors.nama_toko" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="nik_penjual" value="NIK Penjual" />
-                <TextInput id="nik_penjual" type="text" class="mt-1 block w-full" v-model="form.nik_penjual" />
-                <InputError class="mt-2" :message="form.errors.nik_penjual" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="nama_lengkap_penjual" value="Nama Lengkap Penjual" />
-                <TextInput id="nama_lengkap_penjual" type="text" class="mt-1 block w-full" v-model="form.nama_lengkap_penjual" />
-                <InputError class="mt-2" :message="form.errors.nama_lengkap_penjual" />
-            </div>
-            <div class="mt-4">
                 <InputLabel for="phone" value="No HP" />
                 <TextInput id="phone" type="text" class="mt-1 block w-full" v-model="form.phone" />
                 <InputError class="mt-2" :message="form.errors.phone" />
             </div>
-            <div class="mt-4">
-                <InputLabel for="alamat_penjual" value="Alamat Penjual" />
-                <TextInput id="alamat_penjual" type="text" class="mt-1 block w-full" v-model="form.alamat_penjual" />
-                <InputError class="mt-2" :message="form.errors.alamat_penjual" />
-            </div>
-            <div class="mt-4 grid grid-cols-2 gap-4">
+
+            <div v-if="isSeller" class="space-y-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
                 <div>
-                    <InputLabel for="provinsi" value="Provinsi" />
-                    <TextInput id="provinsi" type="text" class="mt-1 block w-full" v-model="form.provinsi" />
-                    <InputError class="mt-2" :message="form.errors.provinsi" />
+                    <h3 class="text-base font-semibold text-gray-900">Informasi Toko</h3>
+                    <p class="mt-1 text-sm text-gray-600">Bagian ini hanya untuk akun penjual.</p>
+                </div>
+
+                <div>
+                    <InputLabel for="nik_penjual" value="NIK Penjual" />
+                    <TextInput
+                        id="nik_penjual"
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="16"
+                        class="mt-1 block w-full"
+                        v-model="form.nik_penjual"
+                        @input="sanitizeNik"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">Hanya 16 digit angka.</p>
+                    <InputError class="mt-2" :message="form.errors.nik_penjual" />
                 </div>
                 <div>
-                    <InputLabel for="kabupaten" value="Kabupaten" />
-                    <TextInput id="kabupaten" type="text" class="mt-1 block w-full" v-model="form.kabupaten" />
-                    <InputError class="mt-2" :message="form.errors.kabupaten" />
+                    <InputLabel for="sertifikasi_jenis" value="Sertifikasi" />
+                    <select
+                        id="sertifikasi_jenis"
+                        v-model="form.sertifikasi_jenis"
+                        class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                    >
+                        <option value="">Pilih Sertifikasi</option>
+                        <option value="halal">Sertifikasi Halal</option>
+                        <option value="haki">Sertifikasi HAKI</option>
+                    </select>
+                    <InputError class="mt-2" :message="form.errors.sertifikasi_jenis" />
                 </div>
-            </div>
-            <div class="mt-4 grid grid-cols-2 gap-4">
                 <div>
-                    <InputLabel for="kecamatan" value="Kecamatan" />
-                    <TextInput id="kecamatan" type="text" class="mt-1 block w-full" v-model="form.kecamatan" />
-                    <InputError class="mt-2" :message="form.errors.kecamatan" />
+                    <p class="text-sm font-medium text-gray-700">Status Sertifikasi</p>
+                    <span
+                        class="mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-semibold"
+                        :class="sertifikasiStatusClass(user.sertifikasi_status)"
+                    >
+                        {{ sertifikasiStatusLabel(user.sertifikasi_status) }}
+                    </span>
                 </div>
                 <div>
-                    <InputLabel for="kelurahan" value="Kelurahan" />
-                    <TextInput id="kelurahan" type="text" class="mt-1 block w-full" v-model="form.kelurahan" />
-                    <InputError class="mt-2" :message="form.errors.kelurahan" />
+                    <InputLabel for="sertifikasi_file" value="Upload Sertifikasi" />
+                    <input
+                        id="sertifikasi_file"
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,application/pdf"
+                        class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                        @change="onSertifikasiFileChange"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG, WEBP, PDF. Maks 4MB.</p>
+                    <InputError class="mt-2" :message="form.errors.sertifikasi_file" />
+
+                    <div v-if="sertifikasiPreview" class="mt-3 space-y-2">
+                        <p class="text-xs text-gray-600">File sertifikasi:</p>
+                        <a
+                            :href="sertifikasiPreview"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="text-sm text-indigo-600 hover:underline"
+                        >
+                            {{ sertifikasiFileName || 'Lihat file sertifikasi' }}
+                        </a>
+                    </div>
                 </div>
-            </div>
-            <div class="mt-4">
-                <InputLabel for="kategori_usaha" value="Kategori Usaha" />
-                <TextInput id="kategori_usaha" type="text" class="mt-1 block w-full" v-model="form.kategori_usaha" />
-                <InputError class="mt-2" :message="form.errors.kategori_usaha" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="modal_usaha" value="Modal Usaha" />
-                <TextInput id="modal_usaha" type="text" class="mt-1 block w-full" v-model="form.modal_usaha" />
-                <InputError class="mt-2" :message="form.errors.modal_usaha" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="omset_tahun" value="Omset Usaha/Tahun" />
-                <TextInput id="omset_tahun" type="text" class="mt-1 block w-full" v-model="form.omset_tahun" />
-                <InputError class="mt-2" :message="form.errors.omset_tahun" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="sertifikasi_halal" value="Sertifikasi Halal" />
-                <TextInput id="sertifikasi_halal" type="text" class="mt-1 block w-full" v-model="form.sertifikasi_halal" />
-                <InputError class="mt-2" :message="form.errors.sertifikasi_halal" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="sertifikasi_haki" value="Sertifikasi HAKI" />
-                <TextInput id="sertifikasi_haki" type="text" class="mt-1 block w-full" v-model="form.sertifikasi_haki" />
-                <InputError class="mt-2" :message="form.errors.sertifikasi_haki" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="sosmed" value="Sosial Media" />
-                <TextInput id="sosmed" type="text" class="mt-1 block w-full" v-model="form.sosmed" />
-                <InputError class="mt-2" :message="form.errors.sosmed" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="tautan_marketplace" value="Tautan Marketplace" />
-                <TextInput id="tautan_marketplace" type="text" class="mt-1 block w-full" v-model="form.tautan_marketplace" />
-                <InputError class="mt-2" :message="form.errors.tautan_marketplace" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="informasi_kemitraan" value="Informasi Kemitraan" />
-                <TextInput id="informasi_kemitraan" type="text" class="mt-1 block w-full" v-model="form.informasi_kemitraan" />
-                <InputError class="mt-2" :message="form.errors.informasi_kemitraan" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="pelatihan_usaha" value="Pelatihan Usaha" />
-                <TextInput id="pelatihan_usaha" type="text" class="mt-1 block w-full" v-model="form.pelatihan_usaha" />
-                <InputError class="mt-2" :message="form.errors.pelatihan_usaha" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="bank_tujuan" value="Bank Tujuan" />
-                <TextInput id="bank_tujuan" type="text" class="mt-1 block w-full" v-model="form.bank_tujuan" />
-                <InputError class="mt-2" :message="form.errors.bank_tujuan" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="nama_rekening" value="Nama Rekening" />
-                <TextInput id="nama_rekening" type="text" class="mt-1 block w-full" v-model="form.nama_rekening" />
-                <InputError class="mt-2" :message="form.errors.nama_rekening" />
-            </div>
-            <div class="mt-4">
-                <InputLabel for="norek" value="No. Rekening" />
-                <TextInput id="norek" type="text" class="mt-1 block w-full" v-model="form.norek" />
-                <InputError class="mt-2" :message="form.errors.norek" />
+
+                <div>
+                    <InputLabel for="sosmed_instagram" value="Link Instagram" />
+                    <TextInput id="sosmed_instagram" type="url" class="mt-1 block w-full" v-model="form.sosmed_instagram" placeholder="https://instagram.com/..." />
+                    <InputError class="mt-2" :message="form.errors.sosmed_instagram" />
+                </div>
+                <div>
+                    <InputLabel for="sosmed_tiktok" value="Link TikTok" />
+                    <TextInput id="sosmed_tiktok" type="url" class="mt-1 block w-full" v-model="form.sosmed_tiktok" placeholder="https://tiktok.com/..." />
+                    <InputError class="mt-2" :message="form.errors.sosmed_tiktok" />
+                </div>
+
+                <div>
+                    <InputLabel for="qris_image" value="Upload QR QRIS" />
+                    <input
+                        id="qris_image"
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        class="mt-1 block w-full rounded border border-gray-300 px-3 py-2 text-sm"
+                        @change="onQrisFileChange"
+                    />
+                    <p class="mt-1 text-xs text-gray-500">Format: JPG, PNG, WEBP. Maks 2MB.</p>
+                    <InputError class="mt-2" :message="form.errors.qris_image" />
+
+                    <div v-if="qrisPreview" class="mt-3">
+                        <p class="mb-2 text-xs text-gray-600">Preview QRIS:</p>
+                        <img :src="qrisPreview" alt="QRIS Preview" class="h-40 w-40 rounded border object-contain bg-white p-2" />
+                    </div>
+                </div>
             </div>
 
             <div v-if="mustVerifyEmail && user.email_verified_at === null">
