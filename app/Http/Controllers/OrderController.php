@@ -34,11 +34,12 @@ class OrderController extends Controller
     {
         $order = $this->managedOrder((int) $id);
 
-        $order->update([
-            'review_status' => 'diterima',
-            'status' => 'diterima',
-            'rejection_reason' => null,
-        ]);
+       $order->update([
+    'review_status' => 'diterima',
+    'status' => 'diterima',
+    'payment_status' => 'waiting_payment',
+    'rejection_reason' => null,
+]);
 
         return back();
     }

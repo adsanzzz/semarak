@@ -21,10 +21,17 @@ const props = defineProps({
 const form = useForm({
     shipping_method: "ambil_toko",
     location_map: "",
-    payment_method: "cod",
+    payment_method: "cash",
 })
 
 const isDelivery = computed(() => form.shipping_method === "antar_rumah")
+
+const availablePayments = computed(() => {
+    if (form.shipping_method === "ambil_toko") {
+        return ["qris"]
+    }
+    return ["qris", "cash"]
+})
 
 function formatCurrency(value) {
     return new Intl.NumberFormat("id-ID").format(value || 0)
@@ -140,31 +147,31 @@ function submitCheckout() {
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-5 space-y-4">
                 <h2 class="text-lg font-semibold text-gray-800">Opsi Pembayaran</h2>
 
-                <label class="flex items-start gap-3 border rounded-lg p-3 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        :checked="form.payment_method === 'qris'"
-                        @change="choosePayment('qris')"
-                        class="mt-1"
-                    />
-                    <div>
-                        <p class="font-semibold">QRIS</p>
-                        <p class="text-sm text-gray-500">Scan QRIS sesuai toko terkait.</p>
-                    </div>
-                </label>
+                <label v-if="availablePayments.includes('qris')" class="flex items-start gap-3 border rounded-lg p-3 cursor-pointer">
+    <input
+        type="checkbox"
+        :checked="form.payment_method === 'qris'"
+        @change="choosePayment('qris')"
+        class="mt-1"
+    />
+    <div>
+        <p class="font-semibold">QRIS</p>
+        <p class="text-sm text-gray-500">Scan QRIS sesuai toko terkait.</p>
+    </div>
+</label>
 
-                <label class="flex items-start gap-3 border rounded-lg p-3 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        :checked="form.payment_method === 'cod'"
-                        @change="choosePayment('cod')"
-                        class="mt-1"
-                    />
-                    <div>
-                        <p class="font-semibold">COD</p>
-                        <p class="text-sm text-gray-500">Bayar saat barang diterima.</p>
-                    </div>
-                </label>
+<label v-if="availablePayments.includes('cash')" class="flex items-start gap-3 border rounded-lg p-3 cursor-pointer">
+    <input
+        type="checkbox"
+        :checked="form.payment_method === 'cash'"
+        @change="choosePayment('cash')"
+        class="mt-1"
+    />
+    <div>
+        <p class="font-semibold">CASH</p>
+        <p class="text-sm text-gray-500">Bayar saat barang diterima.</p>
+    </div>
+</label>
 
                 <p v-if="form.errors.payment_method" class="text-red-500 text-sm">{{ form.errors.payment_method }}</p>
             </div>

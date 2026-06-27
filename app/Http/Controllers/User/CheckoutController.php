@@ -112,27 +112,37 @@ class CheckoutController extends \App\Http\Controllers\Controller
 
         DB::transaction(function () use ($checkoutItems, $request, &$createdOrderIds) {
             foreach ($checkoutItems as $item) {
-                $sellerId = (int) ($item['seller']['id'] ?? 0);
+    $sellerId = (int) ($item['seller']['id'] ?? 0);
 
-                if ($sellerId <= 0) {
-                    abort(422, 'Penjual produk tidak valid.');
-                }
+    if ($sellerId <= 0) {
+        abort(422, 'Penjual produk tidak valid.');
+    }
 
-                $order = Order::create([
-                    'product_id' => $item['product_id'],
-                    'buyer_id' => Auth::id(),
-                    'user_id' => $sellerId,
-                    'jumlah' => $item['qty'],
-                    'total_harga' => $item['price'] * $item['qty'],
-                    'status' => 'pending',
-                    'shipping_method' => $request->shipping_method,
-                    'delivery_location' => $request->shipping_method === 'antar_rumah' ? $request->location_map : null,
-                    'payment_method' => $request->payment_method,
-                    'payment_status' => $request->payment_method === 'qris' ? 'waiting_payment' : 'unpaid',
-                ]);
+    $product = Product::findOrFail($item['product_id']);
 
-                $createdOrderIds[] = $order->id;
-            }
+    if ($product->stok < $item['qty']) {
+        abort(422, "Stok produk {$product->nama} tidak mencukupi.");
+    }
+
+    $order = Order::create([
+        'product_id' => $item['product_id'],
+        'buyer_id' => Auth::id(),
+        'user_id' => $sellerId,
+        'jumlah' => $item['qty'],
+        'total_harga' => $item['price'] * $item['qty'],
+        'status' => 'pending',
+        'shipping_method' => $request->shipping_method,
+        'delivery_location' => $request->shipping_method === 'antar_rumah' ? $request->location_map : null,
+        'payment_method' => $request->payment_method,
+        'payment_status' => $request->payment_method === 'qris'
+    ? 'waiting_confirmation'
+    : 'unpaid',
+    ]);
+
+    $product->decrement('stok', $item['qty']);
+
+    $createdOrderIds[] = $order->id;
+}
         });
 
         $checkoutStores = collect($checkoutItems)
@@ -143,12 +153,15 @@ class CheckoutController extends \App\Http\Controllers\Controller
             ->all();
 
         session([
-            'checkout_result' => [
-                'payment_method' => $request->payment_method,
-                'order_ids' => $createdOrderIds,
-                'stores' => $checkoutStores,
-            ],
-        ]);
+    'checkout_result' => [
+        'payment_method' => $request->payment_method,
+        'order_ids' => $createdOrderIds,
+        'stores' => $checkoutStores,
+        'total_payment' => collect($checkoutItems)->sum(function ($item) {
+            return $item['price'] * $item['qty'];
+        }),
+    ],
+]);
 
         // Hapus item yang sudah di-checkout dari keranjang sesi.
         $checkedOutIds = collect($checkoutItems)->pluck('product_id')->all();
@@ -210,4 +223,26 @@ class CheckoutController extends \App\Http\Controllers\Controller
             ],
         ];
     }
+
+    public function uploadProof(Request $request)
+{
+    $request->validate([
+        'payment_proof' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+    ]);
+
+    $path = $request->file('payment_proof')
+        ->store('payment-proofs', 'public');
+
+    $order = Order::where('id', $request->order_id)
+    ->where('buyer_id', Auth::id())
+    ->firstOrFail();
+
+$path = $request->file('payment_proof')
+    ->store('payment-proofs', 'public');
+
+$order->update([
+    'payment_proof' => $path,
+    'payment_status' => 'waiting_verification',
+]);
+}
 }

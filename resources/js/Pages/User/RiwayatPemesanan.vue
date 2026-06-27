@@ -11,6 +11,13 @@ const props = defineProps({
 const page = usePage()
 const flashSuccess = computed(() => page.props.flash?.success)
 const openedOrderId = ref(null)
+
+const showQrisModal = ref(false)
+const selectedOrder = ref(null)
+
+const showUploadModal = ref(false)
+const paymentProof = ref(null)
+
 const reviewForms = reactive({})
 
 function toggleDetail(orderId) {
@@ -63,10 +70,122 @@ function submitReview(order) {
     },
   })
 }
+
+function openQrisModal(order) {
+  selectedOrder.value = order
+  showQrisModal.value = true
+}
+
+function openUploadModal(order) {
+  selectedOrder.value = order
+  paymentProof.value = null
+  showUploadModal.value = true
+}
+
+function uploadPaymentProof() {
+  if (!paymentProof.value) {
+    alert('Silakan pilih bukti pembayaran terlebih dahulu.')
+    return
+  }
+
+   if (!selectedOrder.value) {
+    alert('Order tidak ditemukan.')
+    return
+  }
+
+    const formData = new FormData()
+
+  formData.append('order_id', selectedOrder.value.id)
+formData.append('payment_proof', paymentProof.value)
+
+    router.post(route('checkout.upload-proof'), formData, {
+    forceFormData: true,
+    preserveScroll: true,
+    onSuccess: () => {
+      showUploadModal.value = false
+      showQrisModal.value = false
+    },
+  })
+}
 </script>
 
 <template>
 <Head title="Riwayat Pemesanan" />
+
+<div
+  v-if="showQrisModal"
+  class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+  @click.self="showQrisModal = false"
+>
+  <div class="bg-white w-full max-w-lg rounded-xl shadow-xl p-6">
+
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold">
+        Pembayaran QRIS
+      </h3>
+
+      <button
+        @click="showQrisModal = false"
+        class="text-gray-500"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="text-center">
+
+      <p class="text-sm text-gray-500">
+        Jumlah yang Harus Dibayar
+      </p>
+
+      <p class="text-2xl font-bold text-green-600 mb-4">
+        Rp {{ Number(selectedOrder?.total_harga || 0).toLocaleString('id-ID') }}
+      </p>
+
+      <img
+        :src="selectedOrder?.product?.user?.qris_image"
+        alt="QRIS"
+        class="w-64 mx-auto border rounded-lg"
+      />
+
+      <div class="mt-4 text-sm text-gray-700">
+        <p>
+          <b>Bank:</b>
+          {{ selectedOrder?.product?.user?.bank_tujuan }}
+        </p>
+
+        <p>
+          <b>Nama Rekening:</b>
+          {{ selectedOrder?.product?.user?.nama_rekening }}
+        </p>
+
+        <p>
+          <b>No Rekening:</b>
+          {{ selectedOrder?.product?.user?.norek }}
+        </p>
+      </div>
+
+      <div class="mt-6 flex justify-center gap-3">
+  <button
+    type="button"
+    @click="showQrisModal = false"
+    class="px-4 py-2 border rounded-lg"
+  >
+    Tutup
+  </button>
+
+  <button
+    type="button"
+    @click="openUploadModal(selectedOrder)"
+    class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+  >
+    Upload Bukti Pembayaran
+  </button>
+</div>
+
+    </div>
+  </div>
+</div>
 
 <AuthenticatedLayout>
 
@@ -179,6 +298,22 @@ Daftar Pemesanan Saya
         <p><span class="font-medium">Pembayaran:</span> {{ paymentLabel(order.payment_method) }}</p>
       </div>
 
+      <div
+  v-if="
+    order.payment_method === 'qris' &&
+    order.status === 'diterima'
+  "
+  class="mt-4"
+>
+  <button
+    type="button"
+    @click.stop="openQrisModal(order)"
+    class="rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700"
+  >
+    Bayar Sekarang
+  </button>
+</div>
+
       <div v-if="order.shipping_method === 'antar_rumah'" class="mt-3">
         <p class="font-medium">Lokasi Antar:</p>
         <a
@@ -241,5 +376,95 @@ Daftar Pemesanan Saya
 </div>
 </div>
 
+
+<div
+  v-if="showUploadModal"
+  class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+>
+  <div class="bg-white w-full max-w-md rounded-xl shadow-xl p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="text-lg font-bold text-gray-800">
+        Upload Bukti Pembayaran
+      </h3>
+
+      <button
+        @click="showUploadModal = false"
+        class="text-gray-500"
+      >
+        ✕
+      </button>
+    </div>
+
+    <input
+      type="file"
+      accept="image/*"
+      @change="paymentProof = $event.target.files[0]"
+      class="w-full border rounded-lg p-2"
+    />
+
+    <div class="mt-5 flex justify-end gap-3">
+      <button
+        type="button"
+        @click="showUploadModal = false"
+        class="px-4 py-2 rounded-lg border border-gray-300"
+      >
+        Batal
+      </button>
+
+      <button
+        type="button"
+        @click="uploadPaymentProof"
+        class="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+      >
+        Upload
+      </button>
+    </div>
+  </div>
+</div>
+
+
+  <div class="bg-white w-full max-w-md rounded-xl shadow-xl p-5">
+
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-lg font-bold">
+        Upload Bukti Pembayaran
+      </h3>
+
+      <button
+        type="button"
+        @click="showUploadModal = false"
+        class="text-gray-500"
+      >
+        ✕
+      </button>
+    </div>
+
+    <input
+      type="file"
+      accept="image/*"
+      @change="paymentProof = $event.target.files[0]"
+      class="w-full border rounded-lg p-2"
+    />
+
+    <div class="mt-5 flex justify-end gap-3">
+
+  
+
+      <button
+        type="button"
+        @click="uploadPaymentProof"
+        class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+      >
+        Upload
+      </button>
+
+    </div>
+
+  </div>
+
+
 </AuthenticatedLayout>
+
+
+
 </template>

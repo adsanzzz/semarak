@@ -7,22 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 class Order extends Model
 {
     protected $fillable = [
-        'product_id',
-        'user_id',
-        'buyer_id',
-        'jumlah',
-        'total_harga',
-        'review_status',
-        'rejection_reason',
-        'status',
-        'shipping_method',
-        'delivery_location',
-        'payment_method',
-        'payment_status',
-        'rating',
-        'review_text',
-        'reviewed_at',
-    ];
+    'product_id',
+    'user_id',
+    'buyer_id',
+    'jumlah',
+    'total_harga',
+    'review_status',
+    'rejection_reason',
+    'status',
+    'shipping_method',
+    'delivery_location',
+    'payment_method',
+    'payment_status',
+    'payment_proof',
+    'rating',
+    'review_text',
+    'reviewed_at',
+];
 
     protected $casts = [
         'rating' => 'integer',

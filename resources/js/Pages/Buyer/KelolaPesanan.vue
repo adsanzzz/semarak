@@ -13,6 +13,8 @@ const activeView = ref('baru')
 const selectedOrder = ref(null)
 const rejectingOrder = ref(null)
 const rejectionReason = ref('Stok Barang Habis/Kosong')
+const showProofModal = ref(false)
+const selectedProof = ref(null)
 
 const rejectionReasons = [
   'Stok Barang Habis/Kosong',
@@ -111,6 +113,11 @@ function formatDate(value) {
 
 function acceptedOrderDate(order) {
   return formatDate(order.created_at)
+}
+
+function openProof(proof) {
+  selectedProof.value = `/storage/${proof}`
+  showProofModal.value = true
 }
 
 function openDetail(order) {
@@ -294,6 +301,7 @@ class="border-b hover:bg-gray-50"
 <th class="p-3 text-left">Metode</th>
 <th class="p-3 text-left">Status</th>
 <th class="p-3 text-left">Tanggal</th>
+<th class="p-3 text-left">Bukti Pembayaran</th>
 <th class="p-3 text-right">Aksi</th>
 </tr>
 </thead>
@@ -352,7 +360,22 @@ v-for="order in visibleOrders"
 </td>
 
 <td class="p-3 whitespace-nowrap">{{ acceptedOrderDate(order) }}</td>
+<td class="p-3 text-center">
+  <button
+    v-if="order.payment_proof"
+    @click.stop="openProof(order.payment_proof)"
+    class="rounded-md bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
+  >
+    Lihat Bukti
+  </button>
 
+  <span
+    v-else
+    class="text-gray-400 text-sm"
+  >
+    Belum Ada
+  </span>
+</td>
 <td class="p-3">
 <div class="flex items-center justify-end gap-2" @click.stop>
 
@@ -395,7 +418,7 @@ Detail
 </tr>
 
 <tr v-if="visibleOrders.length === 0">
-  <td :colspan="activeView === 'baru' ? 9 : 9" class="px-6 py-10 text-center text-gray-500">
+  <td :colspan="10" class="px-6 py-10 text-center text-gray-500">
     Belum ada pesanan pada tampilan ini.
   </td>
 </tr>
@@ -475,6 +498,38 @@ Detail
   </div>
 </transition>
 
+<transition name="fade">
+  <div
+    v-if="showProofModal"
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+    @click.self="showProofModal = false"
+  >
+    <div class="w-full max-w-3xl rounded-2xl bg-white p-6 shadow-2xl">
+
+      <div class="mb-4 flex justify-between items-center">
+        <h4 class="text-lg font-semibold text-gray-800">
+          Bukti Pembayaran
+        </h4>
+
+        <button
+          @click="showProofModal = false"
+          class="text-gray-500 hover:text-gray-800"
+        >
+          Tutup
+        </button>
+      </div>
+
+      <div class="flex justify-center">
+        <img
+          :src="selectedProof"
+          alt="Bukti Pembayaran"
+          class="max-h-[600px] rounded-xl border"
+        />
+      </div>
+
+    </div>
+  </div>
+</transition>
 </div>
 
 </div>

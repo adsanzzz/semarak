@@ -137,6 +137,11 @@ Route::delete('/orders/{id}', [OrderController::class, 'destroy'])
     Route::post('/checkout/qris/confirm', [CheckoutController::class, 'confirmQrisPayment'])
         ->name('checkout.qris.confirm');
 
+    Route::post(
+    '/checkout/upload-proof',
+    [CheckoutController::class, 'uploadProof']
+)->name('checkout.upload-proof');
+
 });
 
     // TENTANG
