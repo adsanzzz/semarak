@@ -18,10 +18,16 @@ import {
 
 // Sidebar selalu terbuka, tidak bisa di-minimize
 const isOpen = ref(true);
-const openSubmenu = ref(null); // track submenu terbuka
 
 // Hanya tampil jika user toko
 const page = usePage();
+const openSubmenu = ref(
+  page.url.startsWith('/admin/users') 
+    ? "Kelola Akun" 
+    : page.url.startsWith('/admin/products') 
+      ? "Kelola Produk" 
+      : null
+); // track submenu terbuka
 const user = computed(() => page.props.auth?.user || {});
 const userRole = computed(() => Number(user.value.role || 0));
 
@@ -39,10 +45,27 @@ const menus = computed(() => {
     return [
       { name: "Dashboard", icon: HomeIcon, route: route('admin.dashboard') },
       { name: "Kelola Kategori", icon: TicketIcon, route: route('admin.categories.index') },
-      { name: "Kelola Produk", icon: ArchiveBoxIcon, route: route('admin.products') },
+      {
+        name: "Kelola Produk",
+        icon: ArchiveBoxIcon,
+        route: "/admin/products",
+        children: [
+          { name: "Daftar Produk", route: route('admin.products') },
+          { name: "Laporan Produk", route: route('admin.products.reports') },
+        ]
+      },
       { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: route('admin.orders') },
-      { name: "Sertifikasi", icon: TicketIcon, route: route('admin.sertifikasi.index') },
-      { name: "Kelola Akun", icon: Cog6ToothIcon, route: route('admin.users.index') },
+      { name: "Filter Peninjauan", icon: TicketIcon, route: route('admin.moderation.index') },
+      {
+        name: "Kelola Akun",
+        icon: Cog6ToothIcon,
+        route: "/admin/users",
+        children: [
+          { name: "Akun Admin", route: "/admin/users?type=admin" },
+          { name: "Akun Penjual", route: "/admin/users?type=penjual" },
+          { name: "Akun Pembeli", route: "/admin/users?type=pembeli" },
+        ]
+      },
       { name: "Kelola Pengaduan Komplain", icon: StarIcon, route: route('admin.komplain') },
     ];
     } else {

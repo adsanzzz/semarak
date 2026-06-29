@@ -23,11 +23,24 @@ class Complaint extends Model
         'input',
         'subject',
         'message',
+        'reported_user_id',
+        'reported_product_id',
+        'bukti',
     ];
 
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function reportedUser()
+    {
+        return $this->belongsTo(User::class, 'reported_user_id');
+    }
+
+    public function reportedProduct()
+    {
+        return $this->belongsTo(Product::class, 'reported_product_id');
     }
 
     public function order()

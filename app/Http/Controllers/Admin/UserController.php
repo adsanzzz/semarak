@@ -9,16 +9,56 @@ use Inertia\Inertia;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $admin = User::where('role', 1)->get();
-        $penjual = User::where('role', 2)->get();
-        $pembeli = User::where('role', 3)->get();
+        $type = $request->query('type');
+
+        if (!$type) {
+            return redirect()->route('admin.users.index', ['type' => 'admin']);
+        }
+
+        $roleMap = [
+            'admin' => 1,
+            'penjual' => 2,
+            'pembeli' => 3
+        ];
+
+        $role = $roleMap[$type] ?? 1;
+
+        $users = User::where('role', $role)
+            ->latest()
+            ->paginate(10)
+            ->withQueryString()
+            ->through(function ($u) {
+                // Count products
+                $productsCount = \App\Models\Product::where('user_id', $u->id)->count();
+
+                // Count orders (For sellers, orders received. For buyers/admins, orders made)
+                if ($u->role === 2) {
+                    $ordersCount = \App\Models\Order::where('user_id', $u->id)->count();
+                } else {
+                    $ordersCount = \App\Models\Order::where('buyer_id', $u->id)->count();
+                }
+
+                // Count complaints (laporan akun)
+                $complaintsCount = \App\Models\Complaint::where('user_id', $u->id)->count();
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->name,
+                    'email' => $u->email,
+                    'role' => $u->role,
+                    'is_active' => $u->is_active,
+                    'nama_toko' => $u->nama_toko,
+                    'products_count' => $productsCount,
+                    'orders_count' => $ordersCount,
+                    'complaints_count' => $complaintsCount,
+                ];
+            });
 
         return Inertia::render('Admin/Users/index', [
-            'admin' => $admin,
-            'penjual' => $penjual,
-            'pembeli' => $pembeli,
+            'users' => $users,
+            'type' => $type
         ]);
     }
 

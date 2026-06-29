@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Models\Complaint;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\ModerationKeyword;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 
@@ -158,12 +159,81 @@ class AdminController extends Controller
         return back()->with('success', 'Balasan admin berhasil disimpan.');
     }
 
-    public function products()
+    public function products(Request $request)
     {
-        $products = Product::with(['user', 'category', 'subCategory'])->get();
+        $search = $request->query('search');
+        $filterSuspicious = $request->query('suspicious');
+
+        $keywords = ModerationKeyword::pluck('keyword')->all();
+
+        $query = Product::with(['user', 'category', 'subCategory']);
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                  ->orWhere('deskripsi', 'like', "%{$search}%");
+            });
+        }
+
+        $products = $query->latest()->get()->map(function($product) use ($keywords) {
+            $isSuspicious = false;
+            $matchedKeywords = [];
+            
+            $textToSearch = strtolower($product->nama . ' ' . $product->deskripsi);
+            foreach ($keywords as $kw) {
+                if (str_contains($textToSearch, strtolower($kw))) {
+                    $isSuspicious = true;
+                    $matchedKeywords[] = $kw;
+                }
+            }
+            
+            $product->is_suspicious = $isSuspicious;
+            $product->matched_keywords = $matchedKeywords;
+            return $product;
+        });
+
+        if ($filterSuspicious === '1') {
+            $products = $products->filter(function($p) {
+                return $p->is_suspicious;
+            })->values();
+        }
+
         return Inertia::render('Admin/Products', [
             'products' => $products,
+            'filters' => [
+                'search' => $search,
+                'suspicious' => $filterSuspicious === '1' ? true : false,
+            ]
         ]);
+    }
+
+    public function moderationKeywords()
+    {
+        $keywords = ModerationKeyword::latest()->get();
+        return Inertia::render('Admin/ModerationKeywords', [
+            'keywords' => $keywords
+        ]);
+    }
+
+    public function storeModerationKeyword(Request $request)
+    {
+        $request->validate([
+            'keyword' => 'required|string|max:255|unique:moderation_keywords,keyword',
+        ]);
+
+        ModerationKeyword::create([
+            'keyword' => strtolower(trim($request->keyword))
+        ]);
+
+        return back()->with('success', 'Keyword filter berhasil ditambahkan');
+    }
+
+    public function destroyModerationKeyword($id)
+    {
+        $keyword = ModerationKeyword::findOrFail($id);
+        $keyword->delete();
+
+        return back()->with('success', 'Keyword filter berhasil dihapus');
     }
 
     public function certifications()
@@ -211,6 +281,48 @@ class AdminController extends Controller
     {
         $product = Product::findOrFail($id);
         $product->update(['is_active' => false]);
-        return redirect()->route('admin.products')->with('success', 'Produk berhasil dinonaktifkan');
+        return back()->with('success', 'Produk berhasil dinonaktifkan');
+    }
+
+    public function productReports()
+    {
+        $products = Product::whereHas('complaints', function($q) {
+            $q->where('complaint_type', 'report_product');
+        })
+        ->with(['user', 'category', 'complaints' => function($q) {
+            $q->where('complaint_type', 'report_product')->with('user');
+        }])
+        ->get()
+        ->map(function($product) {
+            $reportersCount = $product->complaints->count();
+            
+            $reports = $product->complaints->map(function($complaint) {
+                return [
+                    'id' => $complaint->id,
+                    'reporter_name' => $complaint->user?->name ?? $complaint->sender_name ?? 'Pembeli',
+                    'reason' => $complaint->subject,
+                    'description' => $complaint->issue_description,
+                    'bukti_url' => $complaint->bukti ? asset('storage/' . $complaint->bukti) : null,
+                    'created_at' => $complaint->created_at->format('d M Y H:i'),
+                ];
+            });
+
+            return [
+                'id' => $product->id,
+                'nama' => $product->nama,
+                'harga' => $product->harga,
+                'stok' => $product->stok,
+                'is_active' => $product->is_active,
+                'image' => $product->image ? asset('storage/' . $product->image) : null,
+                'toko' => $product->user?->nama_toko ?? $product->user?->name ?? '-',
+                'category' => $product->category?->nama_kategori ?? '-',
+                'reporters_count' => $reportersCount,
+                'reports' => $reports,
+            ];
+        });
+
+        return Inertia::render('Admin/ProductReports', [
+            'reportedProducts' => $products
+        ]);
     }
 }

@@ -29,11 +29,32 @@ use App\Http\Controllers\PaymentController;
 |--------------------------------------------------------------------------
 */
 Route::get('/', function () {
+    $products = \App\Models\Product::where('is_active', true)
+        ->with(['category', 'user', 'orders' => function($q) {
+            $q->completedReviews();
+        }])
+        ->latest()
+        ->take(8)
+        ->get()
+        ->map(function ($item) {
+            $ratings = $item->orders->pluck('rating')->filter();
+            return [
+                'id' => $item->id,
+                'nama' => $item->nama,
+                'kategori' => $item->category?->nama_kategori ?? '-',
+                'harga' => $item->harga,
+                'image' => $item->image ? asset('storage/' . $item->image) : null,
+                'rating' => $ratings->count() ? round($ratings->avg(), 1) : null,
+                'rating_count' => $ratings->count(),
+                'terjual' => $item->terjual ?? 0,
+                'toko' => $item->user?->nama_toko ?? $item->user?->name ?? 'Toko Lokal',
+            ];
+        });
+
     return Inertia::render('Welcome', [
+        'products' => $products,
         'canLogin'       => Route::has('login'),
         'canRegister'    => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion'     => PHP_VERSION,
     ]);
 })->name('home');
 
@@ -52,6 +73,9 @@ Route::get('/produk/lihat', [App\Http\Controllers\User\BuyerController::class, '
 // DETAIL PRODUK (publik)
 Route::get('/produk/{id}', [ProductController::class, 'show'])->name('produk.show');
 
+// PROFIL TOKO (publik)
+Route::get('/toko-profile/{id}', [ProductController::class, 'storeProfile'])->name('toko.profile');
+
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
     ->name('logout');
 
@@ -61,6 +85,9 @@ Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'verified'])->group(function () {
+
+    // LAPORAN PENGADUAN & KOMPLAIN (LAPORKAN PRODUK / AKUN)
+    Route::post('/report', [ComplaintController::class, 'storeReport'])->name('report.store');
 
     // DASHBOARD
     Route::get('/dashboard', [BuyerController::class, 'dashboard'])->name('dashboard');
@@ -224,6 +251,11 @@ Route::controller(SubCategoryController::class)->group(function () {
     Route::post('/sertifikasi/{id}/reject', [AdminController::class, 'rejectCertification'])
         ->name('sertifikasi.reject');
 
+    // 🔍 FILTER PENINJAUAN
+    Route::get('/filter-peninjauan', [AdminController::class, 'moderationKeywords'])->name('moderation.index');
+    Route::post('/filter-peninjauan', [AdminController::class, 'storeModerationKeyword'])->name('moderation.store');
+    Route::delete('/filter-peninjauan/{id}', [AdminController::class, 'destroyModerationKeyword'])->name('moderation.destroy');
+
     // 📢 KOMPLAIN
     Route::get('/komplain', [AdminController::class, 'complaints'])
         ->name('komplain');
@@ -237,6 +269,9 @@ Route::controller(SubCategoryController::class)->group(function () {
     // 🛍️ PRODUK
     Route::get('/products', [AdminController::class, 'products'])
         ->name('products');
+
+    Route::get('/products/reports', [AdminController::class, 'productReports'])
+        ->name('products.reports');
 
     Route::post('/products/{id}/deactivate', [AdminController::class, 'deactivateProduct'])
         ->name('products.deactivate');

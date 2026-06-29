@@ -46,4 +46,9 @@ public function subCategory()
     {
         return $this->hasMany(Order::class);
     }
+
+    public function complaints()
+    {
+        return $this->hasMany(Complaint::class, 'reported_product_id');
+    }
 }

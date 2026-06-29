@@ -70,4 +70,33 @@ class ComplaintController extends Controller
 
         return redirect()->route('pengaduan')->with('success', 'Pengaduan berhasil dikirim.');
     }
+
+    public function storeReport(Request $request)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:255',
+            'description' => 'required|string',
+            'bukti' => 'required|file|image|max:2048',
+            'reported_user_id' => 'nullable|integer|exists:users,id',
+            'reported_product_id' => 'nullable|integer|exists:products,id',
+        ]);
+
+        $buktiPath = null;
+        if ($request->hasFile('bukti')) {
+            $buktiPath = $request->file('bukti')->store('bukti_laporan', 'public');
+        }
+
+        Complaint::create([
+            'user_id' => auth()->id(),
+            'reported_user_id' => $request->reported_user_id,
+            'reported_product_id' => $request->reported_product_id,
+            'complaint_type' => $request->reported_product_id ? 'report_product' : 'report_account',
+            'sender_name' => auth()->user()->name,
+            'subject' => $request->reason,
+            'issue_description' => $request->description,
+            'bukti' => $buktiPath,
+        ]);
+
+        return back()->with('success', 'Laporan Anda berhasil dikirim.');
+    }
 }

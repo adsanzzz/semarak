@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\User;
 
 use App\Models\Product;
+use App\Models\User;
 use App\Models\Category;
 use App\Models\SubCategory;
 use Illuminate\Http\Request;
@@ -151,29 +152,29 @@ public function index()
     /**
      * Halaman kelola produk (untuk user toko)
      */
-   public function manage()
-{
-    $userId = Auth::id();
+    public function manage()
+    {
+        $userId = Auth::id();
 
-    $products = Product::with(['category', 'subCategory'])
-        ->where('user_id', $userId)
-        ->latest()
-        ->get()
-        ->map(function ($p) {
-            return [
-                'id'        => $p->id,
-                'nama'      => $p->nama,
-                'harga'     => $p->harga,
-                'stok'      => $p->stok,
-                'category'  => $p->category,
-                'sub_category' => $p->subCategory,
-                'deskripsi' => $p->deskripsi,
-                'warna'     => $p->warna,
-                'ukuran'    => $p->ukuran,
-                'berat'     => $p->berat,
-                'image_url' => $p->image ? asset('storage/' . $p->image) : null,
-            ];
-        });
+        $products = Product::with(['category', 'subCategory'])
+            ->where('user_id', $userId)
+            ->latest()
+            ->paginate(15)
+            ->through(function ($p) {
+                return [
+                    'id'        => $p->id,
+                    'nama'      => $p->nama,
+                    'harga'     => $p->harga,
+                    'stok'      => $p->stok,
+                    'category'  => $p->category,
+                    'sub_category' => $p->subCategory,
+                    'deskripsi' => $p->deskripsi,
+                    'warna'     => $p->warna,
+                    'ukuran'    => $p->ukuran,
+                    'berat'     => $p->berat,
+                    'image_url' => $p->image ? asset('storage/' . $p->image) : null,
+                ];
+            });
 
     $categories = Category::with('subCategories')->get();
 
@@ -219,6 +220,38 @@ public function show($id)
         ]
     ]);
 
+}
+
+public function storeProfile($id)
+{
+    $toko = User::where('role', 2)->findOrFail($id);
+    
+    $produkList = Product::where('user_id', $id)
+        ->where('is_active', true)
+        ->with(['category', 'orders' => function ($query) {
+            $query->completedReviews();
+        }])
+        ->latest()
+        ->get()
+        ->map(function ($item) {
+            $ratings = $item->orders->pluck('rating')->filter();
+            return [
+                'id' => $item->id,
+                'nama' => $item->nama,
+                'kategori' => $item->category?->nama_kategori ?? '-',
+                'harga' => $item->harga,
+                'image' => $item->image ? asset('storage/' . $item->image) : null,
+                'rating' => $ratings->count() ? round($ratings->avg(), 1) : null,
+                'rating_count' => $ratings->count(),
+                'terjual' => $item->terjual ?? 0,
+                'stok' => $item->stok,
+            ];
+        });
+
+    return Inertia::render('User/ProfilToko', [
+        'toko' => $toko,
+        'produkList' => $produkList,
+    ]);
 }
 
 public function create()
