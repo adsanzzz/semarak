@@ -109,6 +109,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('orders.reject');
     Route::post('/orders/{id}/status', [OrderController::class, 'updateStatus'])
     ->name('orders.updateStatus');
+    Route::post('/orders/{id}/confirm-payment', [OrderController::class, 'confirmPayment'])
+        ->name('orders.confirm-payment');
 
     Route::post('/orders/{id}/review', [OrderController::class, 'review'])
         ->name('orders.review');
@@ -229,6 +231,7 @@ Route::middleware(['auth', 'verified'])
     // SUB CATEGORY
 Route::controller(SubCategoryController::class)->group(function () {
     Route::delete('/sub-categories/{id}', 'destroy')->name('subcategories.destroy');
+    Route::put('/sub-categories/{id}', 'update')->name('subcategories.update');
 });
 
     // 👤 USERS

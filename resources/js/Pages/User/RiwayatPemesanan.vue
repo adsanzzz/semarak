@@ -52,6 +52,14 @@ function paymentLabel(method) {
   return '-'
 }
 
+function paymentStatusLabel(status) {
+  if (status === 'waiting_payment' || status === 'waiting_confirmation') return 'Menunggu Pembayaran'
+  if (status === 'waiting_verification') return 'Menunggu Verifikasi Penjual'
+  if (status === 'paid') return 'Lunas / Sudah Bayar'
+  if (status === 'unpaid') return 'Belum Bayar'
+  return status || '-'
+}
+
 function setReviewRating(orderId, rating) {
   reviewForms[orderId] = reviewForms[orderId] || { rating: 0, review_text: '' }
   reviewForms[orderId].rating = rating
@@ -296,12 +304,27 @@ Daftar Pemesanan Saya
         <p><span class="font-medium">Total:</span> Rp {{ Number(order.total_harga || 0).toLocaleString('id-ID') }}</p>
         <p><span class="font-medium">Pengiriman:</span> {{ shippingLabel(order.shipping_method) }}</p>
         <p><span class="font-medium">Pembayaran:</span> {{ paymentLabel(order.payment_method) }}</p>
+        <p>
+          <span class="font-medium">Status Pembayaran:</span>
+          <span
+            class="ml-1 px-2 py-0.5 rounded text-xs font-semibold"
+            :class="{
+              'bg-yellow-100 text-yellow-800': order.payment_status === 'waiting_confirmation' || order.payment_status === 'waiting_payment',
+              'bg-blue-100 text-blue-800': order.payment_status === 'waiting_verification',
+              'bg-green-100 text-green-800': order.payment_status === 'paid',
+              'bg-red-100 text-red-800': order.payment_status === 'unpaid'
+            }"
+          >
+            {{ paymentStatusLabel(order.payment_status) }}
+          </span>
+        </p>
       </div>
 
       <div
   v-if="
     order.payment_method === 'qris' &&
-    order.status === 'diterima'
+    order.status === 'diterima' &&
+    !order.payment_proof
   "
   class="mt-4"
 >

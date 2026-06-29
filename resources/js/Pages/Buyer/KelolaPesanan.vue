@@ -181,6 +181,21 @@ function updateAcceptedStatus(order, statusBaru) {
   })
 }
 
+function confirmPayment(order) {
+  if (!confirm('Apakah Anda yakin ingin mengonfirmasi pembayaran untuk pesanan ini?')) return
+
+  router.post(route('orders.confirm-payment', order.id), {}, {
+    preserveScroll: true,
+    onSuccess: () => {
+      showNotif('Pembayaran berhasil dikonfirmasi')
+      if (selectedOrder.value && selectedOrder.value.id === order.id) {
+        selectedOrder.value.payment_status = 'paid'
+      }
+      router.reload({ only: ['orders'] })
+    },
+  })
+}
+
 function hapusPesanan(id) {
   if (!confirm('Yakin ingin menghapus pesanan ini?')) return
 
@@ -380,6 +395,14 @@ v-for="order in visibleOrders"
 <div class="flex items-center justify-end gap-2" @click.stop>
 
 <button
+  v-if="order.payment_proof && order.payment_status !== 'paid'"
+  @click="confirmPayment(order)"
+  class="rounded-md bg-purple-600 px-3 py-1 text-white hover:bg-purple-700 text-xs font-semibold"
+>
+  Konfirmasi Bayar
+</button>
+
+<button
 v-if="activeView === 'baru'"
 @click="acceptOrder(order)"
 class="rounded-md bg-green-600 px-3 py-1 text-white hover:bg-green-700"
@@ -454,6 +477,33 @@ Detail
         <p><span class="font-medium">Metode:</span> {{ shippingLabel(selectedOrder.shipping_method) }}</p>
         <p><span class="font-medium">Status Order:</span> {{ statusLabel(selectedOrder.status) }}</p>
         <p><span class="font-medium">Status Review:</span> {{ statusLabel(selectedOrder.review_status) }}</p>
+      </div>
+
+      <div v-if="selectedOrder.payment_proof" class="mt-5 p-4 border border-purple-100 rounded-xl bg-purple-50/50 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <p class="font-semibold text-purple-900">Bukti Pembayaran Tersedia</p>
+          <button
+            type="button"
+            @click="openProof(selectedOrder.payment_proof)"
+            class="text-xs font-semibold text-blue-600 hover:text-blue-800 underline mt-0.5"
+          >
+            Lihat Bukti Transfer
+          </button>
+        </div>
+        <div v-if="selectedOrder.payment_status !== 'paid'">
+          <button
+            type="button"
+            @click="confirmPayment(selectedOrder)"
+            class="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm transition"
+          >
+            Konfirmasi Pembayaran
+          </button>
+        </div>
+        <div v-else>
+          <span class="inline-flex items-center gap-1 text-green-700 font-bold text-xs bg-green-100 px-3 py-1.5 rounded-full border border-green-200">
+            ✓ Pembayaran Lunas
+          </span>
+        </div>
       </div>
 
       <div v-if="selectedOrder.rejection_reason" class="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">

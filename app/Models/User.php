@@ -51,6 +51,8 @@ class User extends Authenticatable
         'nama_rekening',
         'norek',
         'qris_image',
+        'latitude',
+        'longitude',
     ];
 
     /**

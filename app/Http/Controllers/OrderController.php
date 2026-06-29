@@ -34,14 +34,30 @@ class OrderController extends Controller
     {
         $order = $this->managedOrder((int) $id);
 
-       $order->update([
-    'review_status' => 'diterima',
-    'status' => 'diterima',
-    'payment_status' => 'waiting_payment',
-    'rejection_reason' => null,
-]);
+        $paymentStatus = $order->payment_status;
+        if (!in_array($paymentStatus, ['waiting_verification', 'paid'])) {
+            $paymentStatus = 'waiting_payment';
+        }
+
+        $order->update([
+            'review_status' => 'diterima',
+            'status' => 'diterima',
+            'payment_status' => $paymentStatus,
+            'rejection_reason' => null,
+        ]);
 
         return back();
+    }
+
+    public function confirmPayment(Request $request, $id)
+    {
+        $order = $this->managedOrder((int) $id);
+
+        $order->update([
+            'payment_status' => 'paid',
+        ]);
+
+        return back()->with('success', 'Pembayaran berhasil dikonfirmasi.');
     }
 
     public function reject(Request $request, $id)

@@ -12,9 +12,9 @@ class Category extends Model
         'jumlah_toko',
     ];
 
-    public function subcategories()
+    public function subCategories()
     {
-        return $this->hasMany(SubCategory::class);
+        return $this->hasMany(SubCategory::class, 'category_id');
     }
 }
 

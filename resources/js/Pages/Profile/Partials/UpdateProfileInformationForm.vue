@@ -28,7 +28,18 @@ const form = useForm({
     sosmed_instagram: user.sosmed_instagram || '',
     sosmed_tiktok: user.sosmed_tiktok || '',
     qris_image: null,
+    latitude: user.latitude || '',
+    longitude: user.longitude || '',
 });
+
+function useCurrentStoreLocation() {
+    if (!navigator.geolocation) return
+
+    navigator.geolocation.getCurrentPosition((position) => {
+        form.latitude = position.coords.latitude
+        form.longitude = position.coords.longitude
+    })
+}
 
 const sertifikasiPreview = ref(user.sertifikasi_file ? `/storage/${user.sertifikasi_file}` : null);
 const qrisPreview = ref(user.qris_image ? `/storage/${user.qris_image}` : null);
@@ -205,6 +216,51 @@ function submitProfile() {
                     <div v-if="qrisPreview" class="mt-3">
                         <p class="mb-2 text-xs text-gray-600">Preview QRIS:</p>
                         <img :src="qrisPreview" alt="QRIS Preview" class="h-40 w-40 rounded border object-contain bg-white p-2" />
+                    </div>
+                </div>
+
+                <div class="border-t pt-4 mt-4 space-y-4">
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-800">Koordinat Lokasi Toko (Untuk Pengiriman)</h4>
+                        <p class="text-xs text-gray-500">Koordinat ini digunakan untuk membatasi jarak pengantar kurir maksimal 5km.</p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel for="latitude" value="Latitude" />
+                            <TextInput
+                                id="latitude"
+                                type="text"
+                                class="mt-1 block w-full"
+                                v-model="form.latitude"
+                                placeholder="Contoh: -7.561234"
+                            />
+                            <InputError class="mt-2" :message="form.errors.latitude" />
+                        </div>
+                        <div>
+                            <InputLabel for="longitude" value="Longitude" />
+                            <TextInput
+                                id="longitude"
+                                type="text"
+                                class="mt-1 block w-full"
+                                v-model="form.longitude"
+                                placeholder="Contoh: 110.831234"
+                            />
+                            <InputError class="mt-2" :message="form.errors.longitude" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <button
+                            type="button"
+                            @click="useCurrentStoreLocation"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />
+                            </svg>
+                            Gunakan Lokasi Saat Ini
+                        </button>
                     </div>
                 </div>
             </div>

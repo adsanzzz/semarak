@@ -13,7 +13,7 @@ class CategoryController extends Controller
 {
     $categories = Category::with('subCategories')->get();
 
-    return Inertia::render('Admin/Categories/Index', [
+    return Inertia::render('Admin/Categories/index', [
         'categories' => $categories
     ]);
 }

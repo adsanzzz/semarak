@@ -99,8 +99,13 @@ class CheckoutController extends \App\Http\Controllers\Controller
         $request->validate([
             'shipping_method' => 'required|in:ambil_toko,antar_rumah',
             'location_map' => 'nullable|string|max:1000|required_if:shipping_method,antar_rumah',
-            'payment_method' => 'required|in:qris,cod',
+            'payment_method' => 'required|in:qris,cod,cash',
         ]);
+
+        $paymentMethod = $request->payment_method;
+        if ($paymentMethod === 'cash') {
+            $paymentMethod = 'cod';
+        }
 
         $checkoutItems = session('checkout_items', []);
 
@@ -110,7 +115,7 @@ class CheckoutController extends \App\Http\Controllers\Controller
 
         $createdOrderIds = [];
 
-        DB::transaction(function () use ($checkoutItems, $request, &$createdOrderIds) {
+        DB::transaction(function () use ($checkoutItems, $request, &$createdOrderIds, $paymentMethod) {
             foreach ($checkoutItems as $item) {
     $sellerId = (int) ($item['seller']['id'] ?? 0);
 
@@ -133,8 +138,8 @@ class CheckoutController extends \App\Http\Controllers\Controller
         'status' => 'pending',
         'shipping_method' => $request->shipping_method,
         'delivery_location' => $request->shipping_method === 'antar_rumah' ? $request->location_map : null,
-        'payment_method' => $request->payment_method,
-        'payment_status' => $request->payment_method === 'qris'
+        'payment_method' => $paymentMethod,
+        'payment_status' => $paymentMethod === 'qris'
     ? 'waiting_confirmation'
     : 'unpaid',
     ]);
@@ -154,7 +159,7 @@ class CheckoutController extends \App\Http\Controllers\Controller
 
         session([
     'checkout_result' => [
-        'payment_method' => $request->payment_method,
+        'payment_method' => $paymentMethod,
         'order_ids' => $createdOrderIds,
         'stores' => $checkoutStores,
         'total_payment' => collect($checkoutItems)->sum(function ($item) {
@@ -220,29 +225,43 @@ class CheckoutController extends \App\Http\Controllers\Controller
                 'nama_rekening' => $seller?->nama_rekening,
                 'norek' => $seller?->norek,
                 'qris_image' => $seller?->qris_image ? asset('storage/' . $seller->qris_image) : null,
+                'latitude' => $seller?->latitude,
+                'longitude' => $seller?->longitude,
             ],
         ];
     }
 
     public function uploadProof(Request $request)
-{
-    $request->validate([
-        'payment_proof' => 'required|image|mimes:jpg,jpeg,png|max:2048',
-    ]);
+    {
+        $request->validate([
+            'payment_proof' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+            'order_id' => 'required_without:order_ids',
+            'order_ids' => 'required_without:order_id',
+        ]);
 
-    $path = $request->file('payment_proof')
-        ->store('payment-proofs', 'public');
+        $path = $request->file('payment_proof')
+            ->store('payment-proofs', 'public');
 
-    $order = Order::where('id', $request->order_id)
-    ->where('buyer_id', Auth::id())
-    ->firstOrFail();
+        $orderIds = [];
+        if ($request->has('order_ids')) {
+            $orderIds = is_array($request->order_ids) 
+                ? $request->order_ids 
+                : json_decode($request->order_ids, true) ?? explode(',', $request->order_ids);
+        } elseif ($request->has('order_id')) {
+            $orderIds = [$request->order_id];
+        }
 
-$path = $request->file('payment_proof')
-    ->store('payment-proofs', 'public');
+        Order::whereIn('id', $orderIds)
+            ->where('buyer_id', Auth::id())
+            ->update([
+                'payment_proof' => $path,
+                'payment_status' => 'waiting_verification',
+            ]);
 
-$order->update([
-    'payment_proof' => $path,
-    'payment_status' => 'waiting_verification',
-]);
-}
+        if ($request->has('order_ids')) {
+            session()->forget('checkout_result');
+        }
+
+        return back()->with('success', 'Bukti pembayaran berhasil diupload.');
+    }
 }

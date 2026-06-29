@@ -39,6 +39,34 @@ const deleteSubCategory = (id) => {
         router.delete(`/admin/sub-categories/${id}`)
     }
 }
+
+const showEditModal = ref(false)
+const editForm = useForm({
+  id: null,
+  nama_kategori: '',
+  nama_subkategori: '',
+})
+
+const openEditModal = (sub) => {
+  editForm.id = sub.id
+  editForm.nama_kategori = sub.nama_kategori
+  editForm.nama_subkategori = sub.nama_subkategori
+  showEditModal.value = true
+}
+
+const submitEdit = () => {
+  editForm.put(`/admin/sub-categories/${editForm.id}`, {
+    onSuccess: () => {
+      showEditModal.value = false
+      editForm.reset()
+      notif.value = {
+        show: true,
+        type: 'success',
+        message: 'Data berhasil diperbarui'
+      }
+    }
+  })
+}
 </script>
 
 <template>
@@ -159,8 +187,14 @@ class="hover:bg-gray-50"
 
 <td class="border px-4 py-2 space-x-2">
 <button
+  @click.prevent="openEditModal(sub)"
+  class="bg-blue-600 text-white px-2 py-1 rounded hover:bg-blue-700 text-xs font-semibold"
+>
+  Edit
+</button>
+<button
 @click.prevent="deleteSubCategory(sub.id)"
-class="bg-red-600 text-white px-2 py-1 rounded"
+class="bg-red-600 text-white px-2 py-1 rounded hover:bg-red-700 text-xs font-semibold"
 >
 Delete
 </button>
@@ -180,6 +214,61 @@ Belum ada data
 
 </div>
 
+</div>
+
+<!-- EDIT MODAL -->
+<div v-if="showEditModal" class="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-xl p-6 relative">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Edit Kategori & Sub Kategori</h3>
+            <button @click="showEditModal = false" class="text-gray-500 hover:text-gray-800 text-xl font-semibold">✕</button>
+        </div>
+
+        <form @submit.prevent="submitEdit" class="space-y-4">
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Category</label>
+                <input
+                    type="text"
+                    v-model="editForm.nama_kategori"
+                    required
+                    class="border rounded-xl w-full px-3 py-2 mt-1 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:outline-none"
+                />
+                <div v-if="editForm.errors.nama_kategori" class="text-red-500 text-sm mt-1">
+                    {{ editForm.errors.nama_kategori }}
+                </div>
+            </div>
+
+            <div>
+                <label class="text-sm font-semibold text-gray-700">Sub Category</label>
+                <input
+                    type="text"
+                    v-model="editForm.nama_subkategori"
+                    required
+                    class="border rounded-xl w-full px-3 py-2 mt-1 focus:ring-2 focus:ring-blue-100 focus:border-blue-500 focus:outline-none"
+                />
+                <div v-if="editForm.errors.nama_subkategori" class="text-red-500 text-sm mt-1">
+                    {{ editForm.errors.nama_subkategori }}
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-3 pt-3">
+                <button
+                    type="button"
+                    @click="showEditModal = false"
+                    class="border rounded-xl px-4 py-2 hover:bg-gray-50 font-semibold text-sm"
+                >
+                    Batal
+                </button>
+                <button
+                    type="submit"
+                    class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-4 py-2 font-semibold text-sm transition"
+                    :disabled="editForm.processing"
+                >
+                    {{ editForm.processing ? 'Menyimpan...' : 'Simpan Perubahan' }}
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 </AdminLayout>
