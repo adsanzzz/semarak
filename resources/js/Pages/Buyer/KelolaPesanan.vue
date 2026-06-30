@@ -13,6 +13,7 @@ const activeView = ref('baru')
 const selectedOrder = ref(null)
 const rejectingOrder = ref(null)
 const rejectionReason = ref('Stok Barang Habis/Kosong')
+const customRejectionReason = ref('')
 const showProofModal = ref(false)
 const selectedProof = ref(null)
 
@@ -20,6 +21,7 @@ const rejectionReasons = [
   'Stok Barang Habis/Kosong',
   'Alamat Luar Jangkauan',
   'Kelebihan Antrean Pesanan',
+  'Lainnya',
 ]
 
 const incomingOrders = computed(() =>
@@ -136,6 +138,7 @@ function closeDetail() {
 function openRejectDialog(order) {
   rejectingOrder.value = order
   rejectionReason.value = rejectionReasons[0]
+  customRejectionReason.value = ''
 }
 
 function closeRejectDialog() {
@@ -156,8 +159,17 @@ function acceptOrder(order) {
 function rejectOrder() {
   if (!rejectingOrder.value) return
 
+  const finalReason = rejectionReason.value === 'Lainnya'
+    ? customRejectionReason.value.trim()
+    : rejectionReason.value
+
+  if (!finalReason) {
+    alert('Harap isi alasan penolakan manual.')
+    return
+  }
+
   router.post(route('orders.reject', rejectingOrder.value.id), {
-    rejection_reason: rejectionReason.value,
+    rejection_reason: finalReason,
   }, {
     preserveScroll: true,
     onSuccess: () => {
@@ -360,7 +372,7 @@ v-for="order in visibleOrders"
     @change.stop="updateAcceptedStatus(order, $event.target.value)"
     class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
   >
-    <option value="diterima">Diterima</option>
+    <option v-if="order.status === 'diterima'" value="diterima" disabled hidden>Pilih Status</option>
     <option value="diproses">Diproses</option>
     <option value="selesai">Selesai</option>
   </select>
@@ -368,9 +380,14 @@ v-for="order in visibleOrders"
   <span
     v-else
     class="inline-flex rounded-full px-3 py-1 text-xs font-semibold"
-    :class="'bg-amber-100 text-amber-700'"
+    :class="{
+      'bg-yellow-100 text-yellow-700': order.status === 'pending',
+      'bg-blue-100 text-blue-700': order.status === 'diproses' || order.status === 'diterima',
+      'bg-green-100 text-green-700': order.status === 'selesai',
+      'bg-red-100 text-red-700': order.status === 'dibatalkan',
+    }"
   >
-    {{ statusLabel(order.review_status) }}
+    {{ statusLabel(order.status) }}
   </span>
 </td>
 
@@ -519,28 +536,47 @@ Detail
     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
     @click.self="closeRejectDialog"
   >
-    <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl">
+    <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
       <div class="mb-4">
         <h4 class="text-lg font-semibold text-gray-800">Tolak Pesanan #{{ rejectingOrder.id }}</h4>
-        <p class="text-sm text-gray-500">Pilih alasan penolakan yang sesuai.</p>
+        <p class="text-sm text-gray-500">Pilih salah satu alasan atau tulis secara manual di bawah.</p>
       </div>
 
       <div class="space-y-3">
         <label
           v-for="reason in rejectionReasons"
           :key="reason"
-          class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm hover:bg-gray-50"
+          class="flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm hover:bg-gray-50 transition duration-200"
+          :class="rejectionReason === reason ? 'border-red-200 bg-red-50/20' : 'border-gray-200'"
         >
           <input v-model="rejectionReason" type="radio" :value="reason" class="text-red-600 focus:ring-red-500" />
           <span>{{ reason }}</span>
         </label>
+
+        <!-- Textarea for manual reason -->
+        <transition name="fade">
+          <div v-if="rejectionReason === 'Lainnya'" class="mt-3 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+            <label class="block text-xs font-semibold text-gray-500">Alasan Penolakan Manual:</label>
+            <textarea
+              v-model="customRejectionReason"
+              rows="3"
+              required
+              class="w-full rounded-xl border border-gray-300 p-3 text-sm focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-100 font-medium"
+              placeholder="Tulis alasan penolakan secara spesifik di sini..."
+            ></textarea>
+          </div>
+        </transition>
       </div>
 
       <div class="mt-6 flex justify-end gap-3">
         <button class="rounded-xl border px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" @click="closeRejectDialog">
           Batal
         </button>
-        <button class="rounded-xl bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700" @click="rejectOrder">
+        <button 
+          class="rounded-xl bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed font-semibold shadow-sm"
+          :disabled="rejectionReason === 'Lainnya' && !customRejectionReason.trim()"
+          @click="rejectOrder"
+        >
           Konfirmasi Tolak
         </button>
       </div>

@@ -30,9 +30,38 @@ function handleSearch(e) {
   applyFilters()
 }
 
-function deactivateProduct(id) {
-  if (confirm('Apakah Anda yakin ingin menonaktifkan produk ini?')) {
-    router.post(route('admin.products.deactivate', id), {}, {
+/* =========================
+   DEACTIVATION & ACTIVATION
+========================= */
+const showDeactivateModal = ref(false)
+const selectedProductId = ref(null)
+const deactivateReason = ref('')
+
+function openDeactivateModal(id) {
+  selectedProductId.value = id
+  deactivateReason.value = ''
+  showDeactivateModal.value = true
+}
+
+function confirmDeactivate() {
+  if (!deactivateReason.value.trim()) {
+    alert('Alasan dinonaktifkan wajib diisi.')
+    return
+  }
+
+  router.post(route('admin.products.deactivate', selectedProductId.value), {
+    reason: deactivateReason.value
+  }, {
+    onSuccess: () => {
+      showDeactivateModal.value = false
+      router.reload({ only: ['products'] })
+    }
+  })
+}
+
+function activateProduct(id) {
+  if (confirm('Apakah Anda yakin ingin mengaktifkan kembali produk ini?')) {
+    router.post(route('admin.products.activate', id), {}, {
       onSuccess: () => {
         router.reload({ only: ['products'] })
       }
@@ -184,7 +213,7 @@ function deactivateProduct(id) {
                   <div class="flex justify-center gap-2">
                     <button
                       v-if="product.is_active"
-                      @click="deactivateProduct(product.id)"
+                      @click="openDeactivateModal(product.id)"
                       class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer"
                     >
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
@@ -192,13 +221,22 @@ function deactivateProduct(id) {
                       </svg>
                       Non-aktifkan
                     </button>
-                    <span v-else class="text-xs font-bold text-gray-400">Non-aktif</span>
+                    <button
+                      v-else
+                      @click="activateProduct(product.id)"
+                      class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                      </svg>
+                      Aktifkan
+                    </button>
                   </div>
                 </td>
               </tr>
 
               <tr v-if="products.length === 0">
-                <td colspan="7" class="py-16 text-center text-gray-400">
+                <td colspan="8" class="py-16 text-center text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto text-gray-300 mb-3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.637 10.637Z" />
                   </svg>
@@ -211,5 +249,37 @@ function deactivateProduct(id) {
       </div>
 
     </div>
+
+    <!-- 🔍 MODAL NONAKTIFKAN PRODUK (DENGAN ALASAN) -->
+    <transition name="fade">
+      <div v-if="showDeactivateModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-gray-100 transition-all duration-300 space-y-4">
+          <div class="flex items-center gap-3 text-amber-500 mb-2">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <h3 class="text-lg font-bold text-gray-800">Nonaktifkan Produk</h3>
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-semibold text-gray-700">Alasan Menonaktifkan Produk <span class="text-red-500">*</span></label>
+            <textarea 
+              v-model="deactivateReason" 
+              required
+              placeholder="Tulis alasan penonaktifan produk ini agar penjual dapat mengetahuinya..." 
+              class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm h-28 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition"
+            ></textarea>
+          </div>
+          <div class="flex justify-end gap-3 pt-2">
+            <button @click="showDeactivateModal = false" class="rounded-xl bg-gray-100 hover:bg-gray-200 px-5 py-2.5 text-sm font-bold text-gray-700 transition cursor-pointer">
+              Batal
+            </button>
+            <button @click="confirmDeactivate" class="rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-sm font-bold text-white transition cursor-pointer">
+              Nonaktifkan
+            </button>
+          </div>
+        </div>
+      </div>
+    </transition>
+
   </AdminLayout>
 </template>

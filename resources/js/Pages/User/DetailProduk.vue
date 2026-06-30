@@ -5,6 +5,7 @@ import NavbarAuth from '@/Components/NavbarAuth.vue'
 
 // Ambil data dari controller
 const { produk } = usePage().props
+const reviews = computed(() => usePage().props.reviews || [])
 const isAuthenticated = computed(() => !!usePage().props.auth?.user)
 const chatSellerUrl = computed(() => route('chat.start', { seller: produk.user_id, product_id: produk.id }))
 
@@ -248,6 +249,50 @@ function submitReport() {
 
         </div>
 
+      </div>
+
+      <!-- SECTION ULASAN PEMBELI -->
+      <div class="mt-16 border-t pt-10">
+        <h2 class="text-xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+          <span>Ulasan Pembeli</span>
+          <span class="text-sm bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-semibold">
+            {{ reviews.length }} Ulasan
+          </span>
+        </h2>
+
+        <div v-if="reviews.length === 0" class="text-gray-500 text-sm py-6 bg-gray-50 rounded-xl text-center border">
+          Belum ada ulasan untuk produk ini.
+        </div>
+
+        <div v-else class="space-y-6">
+          <div v-for="review in reviews" :key="review.id" class="bg-white rounded-xl border p-5 shadow-sm space-y-3">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="font-bold text-gray-800 text-sm">{{ review.buyer_name }}</p>
+                <div class="flex items-center gap-1.5 mt-1">
+                  <div class="flex text-yellow-450 text-base">
+                    {{ '★'.repeat(review.rating) }}{{ '☆'.repeat(5 - review.rating) }}
+                  </div>
+                  <span class="text-xs text-gray-400">•</span>
+                  <span class="text-xs text-gray-400 font-medium">{{ review.reviewed_at }}</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-gray-700 text-sm leading-relaxed">{{ review.review_text || 'Pembeli tidak memberikan komentar tertulis.' }}</p>
+
+            <div v-if="review.review_image" class="mt-2">
+              <a :href="review.review_image" target="_blank" class="inline-block hover:opacity-90">
+                <img :src="review.review_image" class="h-28 w-28 rounded-lg object-cover border bg-stone-50" />
+              </a>
+            </div>
+
+            <div v-if="review.seller_reply" class="bg-indigo-50/50 border border-indigo-100 rounded-xl p-4 mt-3 space-y-1">
+              <p class="text-xs font-bold text-indigo-900">Tanggapan Penjual:</p>
+              <p class="text-xs text-indigo-950 leading-relaxed">{{ review.seller_reply }}</p>
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>

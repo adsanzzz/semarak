@@ -98,6 +98,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::put('/toko/{id}', 'update')->name('user.toko.update');
         Route::delete('/toko/{id}', 'destroy')->name('user.toko.destroy');
         Route::get('/products', 'manage')->name('user.products');
+        Route::post('/products/{id}/appeal', 'submitAppeal')->name('user.products.appeal');
+        Route::post('/appeals/{id}/acknowledge', 'acknowledgeAppeal')->name('user.appeals.acknowledge');
     });
 
     // PESANAN
@@ -278,6 +280,14 @@ Route::controller(SubCategoryController::class)->group(function () {
 
     Route::post('/products/{id}/deactivate', [AdminController::class, 'deactivateProduct'])
         ->name('products.deactivate');
+    Route::post('/products/{id}/activate', [AdminController::class, 'activateProduct'])
+        ->name('products.activate');
+
+    // APPEALS (PENGAJUAN BANDING)
+    Route::get('/appeals', [AdminController::class, 'appeals'])
+        ->name('appeals.index');
+    Route::post('/appeals/{id}/reply', [AdminController::class, 'replyAppeal'])
+        ->name('appeals.reply');
 
 });
 

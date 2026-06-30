@@ -27,6 +27,15 @@ class OrderController extends Controller
         $order->status = $validated['status'];
         $order->save();
 
+        // Update product's terjual count
+        $product = $order->product;
+        if ($product) {
+            $product->terjual = Order::where('product_id', $product->id)
+                ->where('status', 'selesai')
+                ->sum('jumlah');
+            $product->save();
+        }
+
         return back();
     }
 
@@ -78,6 +87,15 @@ class OrderController extends Controller
             'rejection_reason' => $validated['rejection_reason'],
         ]);
 
+        // Update product's terjual count
+        $product = $order->product;
+        if ($product) {
+            $product->terjual = Order::where('product_id', $product->id)
+                ->where('status', 'selesai')
+                ->sum('jumlah');
+            $product->save();
+        }
+
         return back();
     }
 
@@ -94,6 +112,7 @@ class OrderController extends Controller
         $validated = $request->validate([
             'rating' => ['required', 'integer', 'min:1', 'max:5'],
             'review_text' => ['nullable', 'string', 'max:2000'],
+            'review_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
         ]);
 
         $order = Order::where('buyer_id', auth()->id())->findOrFail((int) $id);
@@ -104,9 +123,18 @@ class OrderController extends Controller
             ]);
         }
 
+        $imagePath = $order->review_image;
+        if ($request->hasFile('review_image')) {
+            if ($order->review_image) {
+                \Illuminate\Support\Facades\Storage::disk('public')->delete($order->review_image);
+            }
+            $imagePath = $request->file('review_image')->store('reviews', 'public');
+        }
+
         $order->update([
             'rating' => $validated['rating'],
             'review_text' => $validated['review_text'] ?? null,
+            'review_image' => $imagePath,
             'reviewed_at' => now(),
         ]);
 

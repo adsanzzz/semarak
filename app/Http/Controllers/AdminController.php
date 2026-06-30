@@ -277,11 +277,88 @@ class AdminController extends Controller
         return back()->with('success', 'Sertifikasi berhasil ditolak');
     }
 
-    public function deactivateProduct($id)
+    public function deactivateProduct(Request $request, $id)
+    {
+        $request->validate([
+            'reason' => 'required|string|max:1000',
+        ]);
+
+        $product = Product::findOrFail($id);
+        $product->update([
+            'is_active' => false,
+            'deactivated_reason' => trim($request->reason),
+        ]);
+        return back()->with('success', 'Produk berhasil dinonaktifkan');
+    }
+
+    public function activateProduct($id)
     {
         $product = Product::findOrFail($id);
-        $product->update(['is_active' => false]);
-        return back()->with('success', 'Produk berhasil dinonaktifkan');
+        $product->update([
+            'is_active' => true,
+            'deactivated_reason' => null,
+        ]);
+        return back()->with('success', 'Produk berhasil diaktifkan kembali');
+    }
+
+    public function appeals()
+    {
+        $appeals = \App\Models\ProductAppeal::with(['product.user', 'user'])
+            ->latest()
+            ->get()
+            ->map(function ($appeal) {
+                return [
+                    'id' => $appeal->id,
+                    'toko_name' => $appeal->product?->user?->nama_toko ?: $appeal->product?->user?->name ?: '-',
+                    'product_name' => $appeal->product?->nama ?? '-',
+                    'product_id' => $appeal->product_id,
+                    'alasan_dinonaktifkan' => $appeal->alasan_dinonaktifkan,
+                    'alasan_banding' => $appeal->alasan_banding,
+                    'bukti_pendukung' => $appeal->bukti_pendukung ? asset('storage/' . $appeal->bukti_pendukung) : null,
+                    'admin_reply' => $appeal->admin_reply,
+                    'created_at' => $appeal->created_at->format('d M Y H:i'),
+                ];
+            });
+
+        return Inertia::render('Admin/Appeals', [
+            'appeals' => $appeals,
+        ]);
+    }
+
+    public function replyAppeal(Request $request, $id)
+    {
+        $request->validate([
+            'reply' => 'required|string|max:2000',
+            'decision' => 'required|string|in:approve,reject',
+        ]);
+
+        $appeal = \App\Models\ProductAppeal::findOrFail($id);
+        
+        $newStatus = $request->decision === 'approve' ? 'approved' : 'rejected';
+
+        $appeal->update([
+            'admin_reply' => trim($request->reply),
+            'status' => $newStatus,
+        ]);
+
+        if ($request->decision === 'approve') {
+            $product = Product::find($appeal->product_id);
+            if ($product) {
+                $product->update([
+                    'is_active' => true,
+                    'deactivated_reason' => null,
+                ]);
+            }
+        } else {
+            $product = Product::find($appeal->product_id);
+            if ($product) {
+                $product->update([
+                    'is_active' => false,
+                ]);
+            }
+        }
+
+        return back()->with('success', 'Tanggapan banding berhasil dikirim.');
     }
 
     public function productReports()

@@ -23,6 +23,7 @@ class Product extends Model
         'ukuran',
         'berat',
         'is_active',
+        'deactivated_reason',
     ];
 
     // Relasi ke User (pemilik produk)
@@ -50,5 +51,15 @@ public function subCategory()
     public function complaints()
     {
         return $this->hasMany(Complaint::class, 'reported_product_id');
+    }
+
+    public function appeals()
+    {
+        return $this->hasMany(ProductAppeal::class);
+    }
+
+    public function latestAppeal()
+    {
+        return $this->hasOne(ProductAppeal::class)->latestOfMany();
     }
 }

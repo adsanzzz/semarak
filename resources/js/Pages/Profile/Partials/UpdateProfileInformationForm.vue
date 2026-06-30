@@ -19,6 +19,7 @@ const user = usePage().props.auth.user;
 const isSeller = Number(user.role) === 2;
 
 const form = useForm({
+    _method: 'PATCH',
     name: user.name,
     email: user.email,
     nik_penjual: user.nik_penjual,
@@ -83,15 +84,37 @@ function sanitizeNik(event) {
     form.nik_penjual = digitsOnly;
 }
 
+const showNotification = ref(false)
+
 function submitProfile() {
-    form.patch(route('profile.update'), {
+    form.post(route('profile.update'), {
         forceFormData: true,
+        onSuccess: () => {
+            showNotification.value = true
+            setTimeout(() => {
+                showNotification.value = false
+            }, 3000)
+        }
     });
 }
 </script>
 
 <template>
-    <section>
+    <section class="relative">
+        <!-- 🔔 NOTIFICATION -->
+        <transition name="fade">
+            <div
+                v-if="showNotification"
+                class="fixed top-5 right-5 z-50 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 animate-fade-in"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-5 h-5 text-emerald-600">
+                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9 9-9s9 3.615 9 9-4.365 9-9 9-9-3.615-9-9Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.74-5.24Z" clip-rule="evenodd" />
+                </svg>
+                <span class="font-bold text-xs uppercase tracking-wider text-emerald-700">Berhasil</span>
+                <span class="text-xs text-gray-500 font-medium border-l border-gray-200 pl-2">Profil berhasil diperbarui.</span>
+            </div>
+        </transition>
+
         <header>
             <h2 class="text-lg font-medium text-gray-900">
                 Profile Information

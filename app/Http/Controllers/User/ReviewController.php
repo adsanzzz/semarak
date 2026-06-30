@@ -28,6 +28,7 @@ class ReviewController extends Controller
                     'buyer' => $order->buyer,
                     'rating' => $order->rating,
                     'review_text' => $order->review_text,
+                    'review_image' => $order->review_image ? asset('storage/' . $order->review_image) : null,
                     'reviewed_at' => $order->reviewed_at,
                     'seller_reply' => $order->seller_reply ?? null,
                 ];

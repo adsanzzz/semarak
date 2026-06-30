@@ -173,7 +173,7 @@ function copyToClipboard(text) {
                   <span class="px-2.5 py-1 text-xs font-semibold rounded bg-amber-100 text-amber-800">Pembayaran QRIS</span>
                 </div>
 
-                <div class="grid md:grid-cols-2 gap-6 items-center">
+                <div class="flex flex-col items-center justify-center p-2 text-center">
                   <!-- QRIS IMAGE -->
                   <div class="text-center space-y-3">
                     <div v-if="store.qris_image" class="bg-white p-3 rounded-xl border border-gray-200 inline-block shadow-sm">
@@ -198,29 +198,6 @@ function copyToClipboard(text) {
                         </svg>
                         Download QRIS
                       </a>
-                    </div>
-                  </div>
-
-                  <!-- REKENING DETAILS -->
-                  <div class="space-y-3 text-sm text-gray-700">
-                    <p class="text-gray-500 font-semibold uppercase tracking-wider text-xs">Atau transfer manual ke:</p>
-                    <div class="space-y-1">
-                      <p><b>Bank Tujuan:</b> {{ store.bank_tujuan || '-' }}</p>
-                      <p><b>Atas Nama:</b> {{ store.nama_rekening || '-' }}</p>
-                      <div class="flex items-center gap-2">
-                        <span><b>No Rekening:</b> {{ store.norek || '-' }}</span>
-                        <button
-                          v-if="store.norek"
-                          type="button"
-                          @click="copyToClipboard(store.norek)"
-                          class="p-1 hover:bg-gray-200 rounded text-blue-600 transition"
-                          title="Salin No Rekening"
-                        >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                          </svg>
-                        </button>
-                      </div>
                     </div>
                   </div>
                 </div>

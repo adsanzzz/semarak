@@ -113,6 +113,17 @@ class CheckoutController extends \App\Http\Controllers\Controller
             return redirect()->route('keranjang.index')->with('error', 'Data checkout tidak ditemukan.');
         }
 
+        // Validate QRIS availability from sellers
+        if ($request->payment_method === 'qris') {
+            foreach ($checkoutItems as $item) {
+                $sellerId = (int) ($item['seller']['id'] ?? 0);
+                $seller = \App\Models\User::find($sellerId);
+                if (!$seller || !$seller->qris_image) {
+                    return back()->withErrors(['payment_method' => 'Salah satu toko belum mengunggah QRIS, mohon pilih metode pembayaran Cash.']);
+                }
+            }
+        }
+
         $createdOrderIds = [];
 
         DB::transaction(function () use ($checkoutItems, $request, &$createdOrderIds, $paymentMethod) {

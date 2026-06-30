@@ -107,15 +107,46 @@ function getInitials(name) {
     <AdminLayout>
         <div class="bg-gray-50/50 rounded-2xl border border-gray-100 p-6">
 
-            <div class="border-b border-gray-100 pb-4 mb-6 flex items-center justify-between">
+            <div class="flex items-center justify-between mb-4">
                 <div>
-                    <h2 class="text-xl font-bold text-gray-800">
-                        {{ pageTitle }}
+                    <h2 class="text-2xl font-extrabold text-[#0A3551] tracking-tight">
+                        Kelola Akun Pengguna
                     </h2>
                     <p class="text-xs text-gray-400 mt-1">
                         Total terdaftar: {{ users.total }} akun
                     </p>
                 </div>
+            </div>
+
+            <!-- Tabulasi (Tabs) -->
+            <div class="flex border-b border-gray-200 mb-6 gap-2">
+                <Link 
+                    :href="route('admin.users.index', { type: 'admin' })"
+                    class="px-5 py-3 text-sm font-bold border-b-2 transition duration-200 cursor-pointer"
+                    :class="type === 'admin' 
+                        ? 'border-indigo-600 text-indigo-600' 
+                        : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'"
+                >
+                    Akun Admin
+                </Link>
+                <Link 
+                    :href="route('admin.users.index', { type: 'penjual' })"
+                    class="px-5 py-3 text-sm font-bold border-b-2 transition duration-200 cursor-pointer"
+                    :class="type === 'penjual' 
+                        ? 'border-indigo-600 text-indigo-600' 
+                        : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'"
+                >
+                    Akun Penjual
+                </Link>
+                <Link 
+                    :href="route('admin.users.index', { type: 'pembeli' })"
+                    class="px-5 py-3 text-sm font-bold border-b-2 transition duration-200 cursor-pointer"
+                    :class="type === 'pembeli' 
+                        ? 'border-indigo-600 text-indigo-600' 
+                        : 'border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-300'"
+                >
+                    Akun Pembeli
+                </Link>
             </div>
 
             <!-- Empty State -->

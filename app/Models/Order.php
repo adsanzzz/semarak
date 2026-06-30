@@ -22,6 +22,7 @@ class Order extends Model
     'payment_proof',
     'rating',
     'review_text',
+    'review_image',
     'reviewed_at',
 ];
 

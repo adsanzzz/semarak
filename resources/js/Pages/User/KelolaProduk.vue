@@ -165,6 +165,72 @@ function confirmHapusProduk() {
     }
   })
 }
+
+/* =========================
+   PENGAJUAN BANDING MODAL
+========================= */
+const showReasonModal = ref(false)
+const showAppealModal = ref(false)
+const selectedProduct = ref(null)
+
+const appealForm = useForm({
+  alasan_banding: '',
+  bukti_pendukung: null,
+})
+
+function viewReason(produk) {
+  selectedProduct.value = produk
+  showReasonModal.value = true
+}
+
+function openAppealForm(produk) {
+  selectedProduct.value = produk
+  appealForm.reset()
+  appealForm.clearErrors()
+  showAppealModal.value = true
+}
+
+function submitAppeal() {
+  if (!appealForm.bukti_pendukung) {
+    appealForm.setError('bukti_pendukung', 'Bukti pendukung (dokumen/gambar) wajib diunggah.');
+    return;
+  }
+  
+  appealForm.post(route('user.products.appeal', selectedProduct.value.id), {
+    forceFormData: true,
+    onSuccess: () => {
+      showAppealModal.value = false
+      showNotif('Pengajuan banding berhasil dikirim.')
+      router.reload({ only: ['products'] })
+    }
+  })
+}
+
+function handleAppealFile(e) {
+  appealForm.bukti_pendukung = e.target.files[0]
+}
+
+const acknowledgeForm = useForm({})
+
+function shouldShowOverlay(produk) {
+  if (!produk.is_active) return true
+  
+  if (produk.latest_appeal && (produk.latest_appeal.status === 'approved' || produk.latest_appeal.status === 'rejected')) {
+    return true
+  }
+  
+  return false
+}
+
+function clickAcknowledgeAppeal(appealId) {
+  acknowledgeForm.post(route('user.appeals.acknowledge', appealId), {
+    onSuccess: () => {
+      showAppealModal.value = false
+      showNotif('Status produk berhasil diperbarui.')
+      router.reload({ only: ['products'] })
+    }
+  })
+}
 </script>
 
 <template>
@@ -241,27 +307,83 @@ function confirmHapusProduk() {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100 bg-white">
-          <tr v-for="produk in products.data" :key="produk.id" class="hover:bg-gray-50/50 transition">
+          <tr v-for="produk in products.data" :key="produk.id" class="hover:bg-gray-50/50 transition relative">
             <!-- Gambar -->
             <td class="px-6 py-4 whitespace-nowrap text-center">
               <img 
                 :src="produk.image_url || 'https://via.placeholder.com/150'" 
-                class="w-12 h-12 object-cover rounded-lg border border-gray-200 shadow-xs mx-auto"
+                class="w-12 h-12 object-cover rounded-lg border border-gray-200 shadow-xs mx-auto transition"
+                :class="{'opacity-35 select-none': shouldShowOverlay(produk)}"
                 alt="Gambar Produk"
               />
+
+              <!-- Overlay absolute div spanning the entire TR, placed inside static TD -->
+              <div v-if="shouldShowOverlay(produk)" class="absolute inset-0 bg-white/75 z-10 flex items-center justify-center gap-4 px-6 pointer-events-auto">
+                <div class="flex items-center gap-2">
+                  <!-- Custom overlay badge based on appeal status -->
+                  <span v-if="produk.latest_appeal && produk.latest_appeal.status === 'approved'" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-emerald-50 text-emerald-700 border border-emerald-100 uppercase tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-emerald-600 animate-pulse">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    Banding Disetujui
+                  </span>
+                  <span v-else-if="produk.latest_appeal && produk.latest_appeal.status === 'rejected'" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-rose-50 text-rose-700 border border-rose-100 uppercase tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-rose-600 animate-pulse">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="m9.75 9.75 4.5 4.5m0-4.5-4.5 4.5M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    Banding Ditolak
+                  </span>
+                  <span v-else class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black bg-rose-50 text-rose-700 border border-rose-100 uppercase tracking-wider">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 text-rose-600 animate-pulse">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+                    </svg>
+                    Produk diNonaktifkan
+                  </span>
+                  
+                  <span v-if="produk.latest_appeal && produk.latest_appeal.status === 'pending'" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-100">
+                    Banding Diajukan
+                  </span>
+                </div>
+
+                <!-- Pembatas vertikal agar lebih rapi -->
+                <div class="h-6 w-px bg-gray-200"></div>
+
+                <div class="flex items-center gap-3">
+                  <button 
+                    @click="viewReason(produk)" 
+                    class="inline-flex items-center gap-1 bg-gray-800 hover:bg-gray-900 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer"
+                  >
+                    Lihat Alasan
+                  </button>
+                  <button 
+                    @click="openAppealForm(produk)" 
+                    class="inline-flex items-center gap-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer"
+                  >
+                    <span v-if="produk.latest_appeal && (produk.latest_appeal.status === 'approved' || produk.latest_appeal.status === 'rejected')">
+                      Lihat Balasan Admin
+                    </span>
+                    <span v-else-if="produk.latest_appeal">
+                      Detail Banding
+                    </span>
+                    <span v-else>
+                      Ajukan Banding
+                    </span>
+                  </button>
+                </div>
+              </div>
             </td>
             <!-- Nama -->
-            <td class="px-6 py-4 whitespace-nowrap font-bold text-gray-800">
+            <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4 whitespace-nowrap font-bold text-gray-800">
               {{ produk.nama }}
             </td>
             <!-- Deskripsi -->
-            <td class="px-6 py-4">
+            <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4">
               <p class="text-xs text-gray-500 line-clamp-2 max-w-xs leading-relaxed" :title="produk.deskripsi">
                 {{ produk.deskripsi || '-' }}
               </p>
             </td>
             <!-- Kategori -->
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4 whitespace-nowrap">
               <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-50 text-blue-700 border border-blue-100">
                 {{ produk.category?.nama_kategori || '-' }}
               </span>
@@ -270,11 +392,11 @@ function confirmHapusProduk() {
               </div>
             </td>
             <!-- Harga -->
-            <td class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
+            <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
               Rp{{ Number(produk.harga).toLocaleString('id-ID') }}
             </td>
             <!-- Stok -->
-            <td class="px-6 py-4 whitespace-nowrap text-center">
+            <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4 whitespace-nowrap text-center">
               <span :class="['px-2.5 py-0.5 rounded-md text-xs font-bold border', 
                             produk.stok > 10 
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
@@ -283,7 +405,7 @@ function confirmHapusProduk() {
               </span>
             </td>
             <!-- Aksi -->
-            <td class="px-6 py-4 whitespace-nowrap text-center">
+            <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4 whitespace-nowrap text-center">
               <div class="flex justify-center gap-2">
                 <button 
                   @click="startEditRow(produk)" 
@@ -547,6 +669,193 @@ function confirmHapusProduk() {
           <button @click="closeDeleteConfirm" class="rounded-xl bg-gray-100 hover:bg-gray-200 px-4 py-2.5 text-sm font-bold text-gray-700 transition cursor-pointer">Batal</button>
           <button @click="confirmHapusProduk" class="rounded-xl bg-red-600 hover:bg-red-700 px-4 py-2.5 text-sm font-bold text-white shadow-xs transition cursor-pointer">Hapus Permanen</button>
         </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- 🔍 MODAL ALASAN DINONAKTIFKAN -->
+  <transition name="fade">
+    <div v-if="showReasonModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl border border-gray-100 transition-all duration-300 space-y-4">
+        <div class="flex items-center gap-3 text-amber-500 mb-2">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+          </svg>
+          <h3 class="text-lg font-bold text-gray-800">Alasan Produk Dinonaktifkan</h3>
+        </div>
+        <div class="bg-amber-50/50 p-4 rounded-xl border border-amber-100/50">
+          <p class="text-sm text-amber-800 font-medium leading-relaxed">
+            {{ selectedProduct?.deactivated_reason || 'Tidak ada alasan spesifik yang diberikan oleh admin.' }}
+          </p>
+        </div>
+        <div class="flex justify-end pt-2">
+          <button @click="showReasonModal = false" class="rounded-xl bg-gray-800 hover:bg-gray-900 px-5 py-2 text-sm font-bold text-white transition cursor-pointer">
+            Tutup
+          </button>
+        </div>
+      </div>
+    </div>
+  </transition>
+
+  <!-- ⚖️ MODAL AJUKAN BANDING -->
+  <transition name="fade">
+    <div v-if="showAppealModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 overflow-y-auto">
+      <div class="w-full max-w-lg rounded-2xl bg-white p-6 shadow-xl border border-gray-100 transition-all duration-300 space-y-4 my-8">
+        
+        <div class="flex items-center gap-3 text-indigo-600 mb-2 border-b border-gray-50 pb-3">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z" />
+          </svg>
+          <h3 class="text-lg font-bold text-gray-800">
+            {{ selectedProduct?.latest_appeal ? 'Status & Detail Banding' : 'Pengajuan Banding Produk' }}
+          </h3>
+        </div>
+
+        <!-- Info Produk -->
+        <div class="flex gap-4 bg-gray-50 p-4 rounded-xl border border-gray-100">
+          <img 
+            :src="selectedProduct?.image_url || 'https://via.placeholder.com/150'" 
+            class="w-16 h-16 object-cover rounded-lg border border-gray-200"
+            alt="Produk"
+          />
+          <div>
+            <h4 class="font-bold text-gray-800 text-sm">{{ selectedProduct?.nama }}</h4>
+            <p class="text-xs text-gray-400 mt-0.5">ID Produk: #{{ selectedProduct?.id }} • Stok: {{ selectedProduct?.stok }}</p>
+            <p class="text-xs font-black text-indigo-600 mt-1">Rp{{ Number(selectedProduct?.harga).toLocaleString('id-ID') }}</p>
+          </div>
+        </div>
+
+        <!-- Alasan Dinonaktifkan -->
+        <div>
+          <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Alasan Dinonaktifkan oleh Admin</label>
+          <p class="text-xs text-gray-600 bg-gray-50 p-3 rounded-lg border border-gray-100 italic">
+            "{{ selectedProduct?.deactivated_reason || 'Tidak ada alasan spesifik.' }}"
+          </p>
+        </div>
+
+        <!-- Form Pengajuan -->
+        <form v-if="!selectedProduct?.latest_appeal" @submit.prevent="submitAppeal" class="space-y-4 pt-2">
+          <div>
+            <label class="mb-1 block text-sm font-semibold text-gray-700">Alasan Pengajuan Banding <span class="text-red-500">*</span></label>
+            <textarea 
+              v-model="appealForm.alasan_banding" 
+              required
+              placeholder="Jelaskan alasan mengapa produk ini layak diaktifkan kembali..." 
+              class="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm h-28 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+            ></textarea>
+            <span v-if="appealForm.errors.alasan_banding" class="text-xs text-red-600 mt-1 block">{{ appealForm.errors.alasan_banding }}</span>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-semibold text-gray-700">Bukti Pendukung <span class="text-red-500">*</span></label>
+            <input 
+              type="file" 
+              required
+              @change="handleAppealFile" 
+              class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"
+            />
+            <p class="text-[10px] text-gray-400 mt-1">Format wajib berupa Gambar (JPG, PNG) atau Dokumen (PDF, DOCX). Maksimal 5MB.</p>
+            <span v-if="appealForm.errors.bukti_pendukung" class="text-xs text-red-600 mt-1 block">{{ appealForm.errors.bukti_pendukung }}</span>
+          </div>
+
+          <!-- Buttons -->
+          <div class="flex justify-end gap-3 pt-4 border-t border-gray-50">
+            <button type="button" @click="showAppealModal = false" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold px-5 py-2.5 rounded-xl text-sm transition cursor-pointer">
+              Batal
+            </button>
+            <button type="submit" :disabled="appealForm.processing" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow-sm transition cursor-pointer disabled:opacity-50">
+              {{ appealForm.processing ? 'Mengirim...' : 'Kirim Banding' }}
+            </button>
+          </div>
+        </form>
+
+        <!-- Detail Banding yang Sudah Dikirim -->
+        <div v-else class="space-y-4 pt-2">
+          <div class="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50 space-y-2">
+            <div>
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Alasan Banding Anda</span>
+              <p class="text-sm text-gray-800 mt-0.5 leading-relaxed">{{ selectedProduct.latest_appeal.alasan_banding }}</p>
+            </div>
+            <div class="pt-1">
+              <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Bukti Pendukung</span>
+              <a 
+                :href="selectedProduct.latest_appeal.bukti_pendukung" 
+                target="_blank" 
+                class="inline-flex items-center gap-1 text-xs text-indigo-600 hover:underline font-bold mt-1"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+                </svg>
+                Lihat Berkas Lampiran
+              </a>
+            </div>
+          </div>
+
+          <!-- Balasan dari Admin -->
+          <div class="border-t border-gray-100 pt-4">
+            <span class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Tanggapan Admin</span>
+            
+            <div v-if="selectedProduct.latest_appeal.admin_reply">
+              <!-- Approved Reply Box -->
+              <div v-if="selectedProduct.latest_appeal.status === 'approved'" class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 space-y-1.5">
+                <div class="flex items-center gap-1.5 text-emerald-700 font-bold text-xs">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-emerald-600">
+                    <path fill-rule="evenodd" d="M2.25 12c0-5.385 4.365-9 9-9s9 3.615 9 9-4.365 9-9 9-9-3.615-9-9Zm13.36-1.814a.75.75 0 1 0-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 0 0-1.06 1.06l2.25 2.25a.75.75 0 0 0 1.14-.094l3.74-5.24Z" clip-rule="evenodd" />
+                  </svg>
+                  Keputusan: Banding Disetujui (Produk Aktif Kembali)
+                </div>
+                <p class="text-sm text-emerald-900 leading-relaxed italic mt-1 bg-white/50 p-2.5 rounded-lg border border-emerald-100/30">
+                  "{{ selectedProduct.latest_appeal.admin_reply }}"
+                </p>
+              </div>
+
+              <!-- Rejected Reply Box -->
+              <div v-else-if="selectedProduct.latest_appeal.status === 'rejected'" class="bg-rose-50/60 p-4 rounded-xl border border-rose-100 space-y-1.5">
+                <div class="flex items-center gap-1.5 text-rose-700 font-bold text-xs">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 text-rose-600">
+                    <path fill-rule="evenodd" d="M12 2.25c-5.385 0-9 3.615-9 9s3.615 9 9 9 9-3.615 9-9-3.615-9-9-9Zm-1.25 4.75a1.25 1.25 0 1 1 2.5 0v5a1.25 1.25 0 1 1-2.5 0V7Zm1.25 9.75a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z" clip-rule="evenodd" />
+                  </svg>
+                  Keputusan: Banding Ditolak (Produk Tetap Non-Aktif)
+                </div>
+                <p class="text-sm text-rose-900 leading-relaxed italic mt-1 bg-white/50 p-2.5 rounded-lg border border-rose-100/30">
+                  "{{ selectedProduct.latest_appeal.admin_reply }}"
+                </p>
+              </div>
+
+              <!-- Normal/Pending Reply Box fallback -->
+              <div v-else class="bg-emerald-50/60 p-4 rounded-xl border border-emerald-100 space-y-1">
+                <div class="flex items-center gap-1.5 text-emerald-700 font-bold text-xs mb-1">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  Admin Semarak
+                </div>
+                <p class="text-sm text-emerald-900 leading-relaxed italic">
+                  "{{ selectedProduct.latest_appeal.admin_reply }}"
+                </p>
+              </div>
+            </div>
+
+            <div v-else class="bg-gray-50 p-4 rounded-xl border border-gray-100 text-center py-6 text-gray-400">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 mx-auto text-gray-300 mb-1 animate-pulse">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <p class="text-xs">Menunggu tanggapan dari tim admin Semarak.</p>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3 pt-2">
+            <button @click="showAppealModal = false" class="rounded-xl bg-gray-100 hover:bg-gray-200 px-5 py-2 text-sm font-bold text-gray-700 transition cursor-pointer">
+              Tutup
+            </button>
+            <button 
+              v-if="selectedProduct.latest_appeal.status === 'approved' || selectedProduct.latest_appeal.status === 'rejected'"
+              @click="clickAcknowledgeAppeal(selectedProduct.latest_appeal.id)" 
+              class="rounded-xl bg-emerald-600 hover:bg-emerald-700 px-5 py-2 text-sm font-bold text-white transition cursor-pointer"
+            >
+              Selesai
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   </transition>

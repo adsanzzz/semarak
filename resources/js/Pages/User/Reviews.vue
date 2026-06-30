@@ -53,6 +53,7 @@ function submitReply(orderId) {
 
                 <div class="mt-3">
                   <p class="text-gray-800">{{ r.review_text }}</p>
+                  <img v-if="r.review_image" :src="r.review_image" class="mt-2 max-h-36 rounded-lg object-contain border bg-gray-50 p-1" />
                 </div>
 
                 <div class="mt-3">

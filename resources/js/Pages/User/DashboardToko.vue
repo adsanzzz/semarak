@@ -43,11 +43,16 @@ const props = defineProps({
   }
 })
 
-const activePoint = ref(null)
+const activeRevenuePoint = ref(null)
+const activeSalesPoint = ref(null)
 
 // Format currency
 const formatIDR = (value) => {
   return 'Rp' + Number(value).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+}
+
+const formatQty = (value) => {
+  return Number(value).toLocaleString('id-ID', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) + ' Unit'
 }
 
 // Convert format 'YYYY-MM' to 'Juni 2026'
@@ -72,14 +77,14 @@ const handleMonthChange = (event) => {
   })
 }
 
-// SVG Chart Calculations
+// SVG Chart Calculations - Revenue
 const maxRevenue = computed(() => {
   if (!props.chartData || props.chartData.length === 0) return 100000;
   const max = Math.max(...props.chartData.map(d => d.revenue));
   return max > 0 ? max : 100000;
 })
 
-const chartPoints = computed(() => {
+const revenuePoints = computed(() => {
   const data = props.chartData || [];
   if (data.length === 0) return [];
   
@@ -103,8 +108,8 @@ const chartPoints = computed(() => {
   })
 })
 
-const areaPath = computed(() => {
-  const pts = chartPoints.value;
+const revenueAreaPath = computed(() => {
+  const pts = revenuePoints.value;
   if (pts.length === 0) return '';
   const padding = { top: 20, bottom: 35, left: 70 };
   const chartH = 240 - padding.top - padding.bottom;
@@ -118,8 +123,8 @@ const areaPath = computed(() => {
   return d;
 })
 
-const linePath = computed(() => {
-  const pts = chartPoints.value;
+const revenueLinePath = computed(() => {
+  const pts = revenuePoints.value;
   if (pts.length === 0) return '';
   let d = `M ${pts[0].x} ${pts[0].y}`;
   for (let i = 1; i < pts.length; i++) {
@@ -128,15 +133,82 @@ const linePath = computed(() => {
   return d;
 })
 
-const yTicks = computed(() => {
+const revenueYTicks = computed(() => {
   const max = maxRevenue.value;
   return [0, max * 0.25, max * 0.5, max * 0.75, max];
 })
 
-const getY = (val) => {
+const getRevenueY = (val) => {
   const padding = { top: 20, bottom: 35, left: 70 };
   const chartH = 240 - padding.top - padding.bottom;
   return padding.top + chartH - (val / maxRevenue.value) * chartH;
+}
+
+// SVG Chart Calculations - Sales Qty
+const maxSales = computed(() => {
+  if (!props.chartData || props.chartData.length === 0) return 10;
+  const max = Math.max(...props.chartData.map(d => d.qty));
+  return max > 0 ? max : 10;
+})
+
+const salesPoints = computed(() => {
+  const data = props.chartData || [];
+  if (data.length === 0) return [];
+  
+  const width = 760;
+  const height = 240;
+  const padding = { top: 20, right: 20, bottom: 35, left: 70 };
+  const chartW = width - padding.left - padding.right;
+  const chartH = height - padding.top - padding.bottom;
+  const maxSl = maxSales.value;
+  
+  return data.map((d, i) => {
+    const x = padding.left + (data.length > 1 ? (i / (data.length - 1)) * chartW : chartW / 2);
+    const y = padding.top + chartH - (d.qty / maxSl) * chartH;
+    return {
+      x,
+      y,
+      label: d.label,
+      revenue: d.revenue,
+      qty: d.qty
+    };
+  })
+})
+
+const salesAreaPath = computed(() => {
+  const pts = salesPoints.value;
+  if (pts.length === 0) return '';
+  const padding = { top: 20, bottom: 35, left: 70 };
+  const chartH = 240 - padding.top - padding.bottom;
+  const baseY = padding.top + chartH;
+  
+  let d = `M ${pts[0].x} ${baseY}`;
+  pts.forEach(p => {
+    d += ` L ${p.x} ${p.y}`;
+  });
+  d += ` L ${pts[pts.length - 1].x} ${baseY} Z`;
+  return d;
+})
+
+const salesLinePath = computed(() => {
+  const pts = salesPoints.value;
+  if (pts.length === 0) return '';
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length; i++) {
+    d += ` L ${pts[i].x} ${pts[i].y}`;
+  }
+  return d;
+})
+
+const salesYTicks = computed(() => {
+  const max = maxSales.value;
+  return [0, max * 0.25, max * 0.5, max * 0.75, max];
+})
+
+const getSalesY = (val) => {
+  const padding = { top: 20, bottom: 35, left: 70 };
+  const chartH = 240 - padding.top - padding.bottom;
+  return padding.top + chartH - (val / maxSales.value) * chartH;
 }
 </script>
 
@@ -315,108 +387,221 @@ const getY = (val) => {
 
           </div>
 
-          <!-- 📈 Grafik Tren Penjualan (Custom Interactive SVG Chart) -->
-          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
-              <div>
-                <h3 class="text-lg font-bold text-gray-800">Tren Pendapatan Toko</h3>
-                <p class="text-xs text-gray-500 mt-0.5">
-                  Visualisasi grafik pendapatan harian/bulanan berdasarkan filter periode yang aktif.
-                </p>
-              </div>
-              <div class="flex items-center gap-4 text-xs font-medium">
-                <div class="flex items-center gap-1.5">
-                  <span class="w-3.5 h-3.5 rounded bg-indigo-600"></span>
-                  <span class="text-gray-600">Pendapatan (Rupiah)</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- SVG Line/Area Graph Container -->
-            <div class="relative w-full overflow-x-auto select-none">
-              <div class="min-w-[760px] h-[260px] relative">
-                
-                <!-- Tooltip Overlay -->
-                <div v-if="activePoint" 
-                     class="absolute bg-gray-900/95 text-white p-3 rounded-lg shadow-xl text-xs z-20 pointer-events-none border border-gray-700"
-                     :style="{ left: `${activePoint.x - 70}px`, top: `${activePoint.y - 85}px` }">
-                  <p class="font-bold border-b border-gray-700 pb-1 mb-1 text-center text-yellow-400">
-                    {{ selectedMonth === 'semua' ? activePoint.label : `Tanggal ${activePoint.label}` }}
+          <!-- 📈 Grafik Tren Pendapatan & Penjualan (Custom Interactive SVG Chart) -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- Card: Tren Pendapatan -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800">Tren Pendapatan Toko</h3>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    Visualisasi grafik pendapatan harian/bulanan berdasarkan filter periode yang aktif.
                   </p>
-                  <p class="flex justify-between gap-4"><span>Pendapatan:</span> <span class="font-bold text-right">{{ formatIDR(activePoint.revenue) }}</span></p>
-                  <p class="flex justify-between gap-4"><span>Qty Terjual:</span> <span class="font-bold text-right">{{ activePoint.qty }} Unit</span></p>
                 </div>
-
-                <svg class="w-full h-full overflow-visible" viewBox="0 0 760 240">
-                  <defs>
-                    <!-- Background Area Gradient -->
-                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.25" />
-                      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.0" />
-                    </linearGradient>
-                  </defs>
-
-                  <!-- Y-Axis Gridlines & Labels -->
-                  <g class="text-[10px] fill-gray-400">
-                    <g v-for="(tick, idx) in yTicks" :key="idx">
-                      <line x1="70" :y1="getY(tick)" x2="740" :y2="getY(tick)" stroke="#f1f5f9" stroke-width="1.5" />
-                      <text x="60" :y="getY(tick) + 3" text-anchor="end">{{ formatIDR(tick) }}</text>
-                    </g>
-                  </g>
-
-                  <!-- Area Path under Curve -->
-                  <path v-if="chartPoints.length > 0" :d="areaPath" fill="url(#revenueGradient)" />
-
-                  <!-- Main Curve Line -->
-                  <path v-if="chartPoints.length > 0" :d="linePath" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-
-                  <!-- Interactive Data Point Circles & Trigger Rects -->
-                  <g v-for="(pt, idx) in chartPoints" :key="idx">
-                    <!-- Invisible wider trigger bars for better hover experience -->
-                    <rect 
-                      :x="pt.x - 12" 
-                      y="15" 
-                      width="24" 
-                      height="190" 
-                      fill="transparent" 
-                      class="cursor-pointer"
-                      @mouseenter="activePoint = pt"
-                      @mouseleave="activePoint = null"
-                    />
-
-                    <!-- Data circle marker -->
-                    <circle 
-                      v-if="pt.revenue > 0"
-                      :cx="pt.x" 
-                      :cy="pt.y" 
-                      r="4" 
-                      fill="white" 
-                      stroke="#4f46e5" 
-                      stroke-width="2.5" 
-                      class="transition-all duration-150 pointer-events-none"
-                      :class="activePoint && activePoint.label === pt.label ? 'r-6 stroke-yellow-500 scale-125' : ''"
-                    />
-                  </g>
-
-                  <!-- X-Axis Labels -->
-                  <g class="text-[9px] fill-gray-400 font-medium" text-anchor="middle">
-                    <!-- Display fewer labels if data points are high to prevent overlap (e.g. 31 days) -->
-                    <text 
-                      v-for="(pt, idx) in chartPoints" 
-                      :key="idx"
-                      v-show="chartPoints.length <= 15 || idx % 2 === 0"
-                      :x="pt.x" 
-                      y="230"
-                    >
-                      {{ pt.label }}
-                    </text>
-                  </g>
-                </svg>
+                <div class="flex items-center gap-4 text-xs font-medium">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-3.5 h-3.5 rounded bg-indigo-600"></span>
+                    <span class="text-gray-600">Pendapatan (Rupiah)</span>
+                  </div>
+                </div>
               </div>
+
+              <!-- SVG Line/Area Graph Container -->
+              <div class="relative w-full overflow-x-auto select-none">
+                <div class="w-[760px] h-[260px] relative mx-auto">
+                  
+                  <!-- Tooltip Overlay -->
+                  <div v-if="activeRevenuePoint" 
+                       class="absolute bg-gray-900/95 text-white p-3 rounded-lg shadow-xl text-xs z-20 pointer-events-none border border-gray-700 w-[160px]"
+                       :style="{ 
+                         left: `${Math.max(10, Math.min(590, activeRevenuePoint.x - 80))}px`, 
+                         top: activeRevenuePoint.y < 90 ? `${activeRevenuePoint.y + 15}px` : `${activeRevenuePoint.y - 85}px` 
+                       }">
+                    <p class="font-bold border-b border-gray-700 pb-1 mb-1 text-center text-yellow-400">
+                      {{ selectedMonth === 'semua' ? activeRevenuePoint.label : `Tanggal ${activeRevenuePoint.label}` }}
+                    </p>
+                    <p class="flex justify-between gap-4"><span>Pendapatan:</span> <span class="font-bold text-right">{{ formatIDR(activeRevenuePoint.revenue) }}</span></p>
+                    <p class="flex justify-between gap-4"><span>Qty Terjual:</span> <span class="font-bold text-right">{{ activeRevenuePoint.qty }} Unit</span></p>
+                  </div>
+
+                  <svg class="w-full h-full overflow-visible" viewBox="0 0 760 240">
+                    <defs>
+                      <!-- Background Area Gradient -->
+                      <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.25" />
+                        <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.0" />
+                      </linearGradient>
+                    </defs>
+
+                    <!-- Y-Axis Gridlines & Labels -->
+                    <g class="text-[10px] fill-gray-400">
+                      <g v-for="(tick, idx) in revenueYTicks" :key="idx">
+                        <line x1="70" :y1="getRevenueY(tick)" x2="740" :y2="getRevenueY(tick)" stroke="#f1f5f9" stroke-width="1.5" />
+                        <text x="60" :y="getRevenueY(tick) + 3" text-anchor="end">{{ formatIDR(tick) }}</text>
+                      </g>
+                    </g>
+
+                    <!-- Area Path under Curve -->
+                    <path v-if="revenuePoints.length > 0" :d="revenueAreaPath" fill="url(#revenueGradient)" />
+
+                    <!-- Main Curve Line -->
+                    <path v-if="revenuePoints.length > 0" :d="revenueLinePath" fill="none" stroke="#4f46e5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- Interactive Data Point Circles & Trigger Rects -->
+                    <g v-for="(pt, idx) in revenuePoints" :key="idx">
+                      <!-- Invisible wider trigger bars for better hover experience -->
+                      <rect 
+                        :x="pt.x - 12" 
+                        y="15" 
+                        width="24" 
+                        height="190" 
+                        fill="transparent" 
+                        class="cursor-pointer"
+                        @mouseenter="activeRevenuePoint = pt"
+                        @mouseleave="activeRevenuePoint = null"
+                      />
+
+                      <!-- Data circle marker -->
+                      <circle 
+                        v-if="pt.revenue > 0"
+                        :cx="pt.x" 
+                        :cy="pt.y" 
+                        r="4" 
+                        fill="white" 
+                        stroke="#4f46e5" 
+                        stroke-width="2.5" 
+                        class="transition-all duration-150 pointer-events-none"
+                        :class="activeRevenuePoint && activeRevenuePoint.label === pt.label ? 'r-6 stroke-yellow-500 scale-125' : ''"
+                      />
+                    </g>
+
+                    <!-- X-Axis Labels -->
+                    <g class="text-[9px] fill-gray-400 font-medium" text-anchor="middle">
+                      <text 
+                        v-for="(pt, idx) in revenuePoints" 
+                        :key="idx"
+                        v-show="revenuePoints.length <= 15 || idx % 2 === 0"
+                        :x="pt.x" 
+                        y="230"
+                      >
+                        {{ pt.label }}
+                      </text>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-[10px] text-gray-400 text-center mt-3">
+                * Arahkan kursor pada titik grafik untuk detail pendapatan.
+              </p>
             </div>
-            <p class="text-[10px] text-gray-400 text-center mt-3">
-              * Arahkan kursor / hover pada titik grafik untuk detail rekapan pendapatan dan kuantitas unit terjual.
-            </p>
+
+            <!-- Card: Tren Penjualan (Qty) -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-2">
+                <div>
+                  <h3 class="text-lg font-bold text-gray-800">Tren Penjualan Toko</h3>
+                  <p class="text-xs text-gray-500 mt-0.5">
+                    Visualisasi grafik produk terjual harian/bulanan berdasarkan filter periode yang aktif.
+                  </p>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-medium">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-3.5 h-3.5 rounded bg-blue-600"></span>
+                    <span class="text-gray-600">Produk Terjual (Unit)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SVG Line/Area Graph Container -->
+              <div class="relative w-full overflow-x-auto select-none">
+                <div class="w-[760px] h-[260px] relative mx-auto">
+                  
+                  <!-- Tooltip Overlay -->
+                  <div v-if="activeSalesPoint" 
+                       class="absolute bg-gray-900/95 text-white p-3 rounded-lg shadow-xl text-xs z-20 pointer-events-none border border-gray-700 w-[160px]"
+                       :style="{ 
+                         left: `${Math.max(10, Math.min(590, activeSalesPoint.x - 80))}px`, 
+                         top: activeSalesPoint.y < 90 ? `${activeSalesPoint.y + 15}px` : `${activeSalesPoint.y - 85}px` 
+                       }">
+                    <p class="font-bold border-b border-gray-700 pb-1 mb-1 text-center text-yellow-400">
+                      {{ selectedMonth === 'semua' ? activeSalesPoint.label : `Tanggal ${activeSalesPoint.label}` }}
+                    </p>
+                    <p class="flex justify-between gap-4"><span>Qty Terjual:</span> <span class="font-bold text-right">{{ activeSalesPoint.qty }} Unit</span></p>
+                    <p class="flex justify-between gap-4"><span>Pendapatan:</span> <span class="font-bold text-right">{{ formatIDR(activeSalesPoint.revenue) }}</span></p>
+                  </div>
+
+                  <svg class="w-full h-full overflow-visible" viewBox="0 0 760 240">
+                    <defs>
+                      <!-- Background Area Gradient -->
+                      <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25" />
+                        <stop offset="100%" stop-color="#2563eb" stop-opacity="0.0" />
+                      </linearGradient>
+                    </defs>
+
+                    <!-- Y-Axis Gridlines & Labels -->
+                    <g class="text-[10px] fill-gray-400">
+                      <g v-for="(tick, idx) in salesYTicks" :key="idx">
+                        <line x1="70" :y1="getSalesY(tick)" x2="740" :y2="getSalesY(tick)" stroke="#f1f5f9" stroke-width="1.5" />
+                        <text x="60" :y="getSalesY(tick) + 3" text-anchor="end">{{ formatQty(tick) }}</text>
+                      </g>
+                    </g>
+
+                    <!-- Area Path under Curve -->
+                    <path v-if="salesPoints.length > 0" :d="salesAreaPath" fill="url(#salesGradient)" />
+
+                    <!-- Main Curve Line -->
+                    <path v-if="salesPoints.length > 0" :d="salesLinePath" fill="none" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+
+                    <!-- Interactive Data Point Circles & Trigger Rects -->
+                    <g v-for="(pt, idx) in salesPoints" :key="idx">
+                      <!-- Invisible wider trigger bars for better hover experience -->
+                      <rect 
+                        :x="pt.x - 12" 
+                        y="15" 
+                        width="24" 
+                        height="190" 
+                        fill="transparent" 
+                        class="cursor-pointer"
+                        @mouseenter="activeSalesPoint = pt"
+                        @mouseleave="activeSalesPoint = null"
+                      />
+
+                      <!-- Data circle marker -->
+                      <circle 
+                        v-if="pt.qty > 0"
+                        :cx="pt.x" 
+                        :cy="pt.y" 
+                        r="4" 
+                        fill="white" 
+                        stroke="#2563eb" 
+                        stroke-width="2.5" 
+                        class="transition-all duration-150 pointer-events-none"
+                        :class="activeSalesPoint && activeSalesPoint.label === pt.label ? 'r-6 stroke-yellow-500 scale-125' : ''"
+                      />
+                    </g>
+
+                    <!-- X-Axis Labels -->
+                    <g class="text-[9px] fill-gray-400 font-medium" text-anchor="middle">
+                      <text 
+                        v-for="(pt, idx) in salesPoints" 
+                        :key="idx"
+                        v-show="salesPoints.length <= 15 || idx % 2 === 0"
+                        :x="pt.x" 
+                        y="230"
+                      >
+                        {{ pt.label }}
+                      </text>
+                    </g>
+                  </svg>
+                </div>
+              </div>
+              <p class="text-[10px] text-gray-400 text-center mt-3">
+                * Arahkan kursor pada titik grafik untuk detail unit terjual.
+              </p>
+            </div>
+
           </div>
 
           <!-- Bottom Columns: Top Selling & Recent Activity -->

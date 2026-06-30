@@ -156,7 +156,7 @@ public function index()
     {
         $userId = Auth::id();
 
-        $products = Product::with(['category', 'subCategory'])
+        $products = Product::with(['category', 'subCategory', 'latestAppeal'])
             ->where('user_id', $userId)
             ->latest()
             ->paginate(15)
@@ -173,6 +173,14 @@ public function index()
                     'ukuran'    => $p->ukuran,
                     'berat'     => $p->berat,
                     'image_url' => $p->image ? asset('storage/' . $p->image) : null,
+                    'is_active' => (bool) $p->is_active,
+                    'deactivated_reason' => $p->deactivated_reason,
+                    'latest_appeal' => $p->latestAppeal ? [
+                        'id' => $p->latestAppeal->id,
+                        'alasan_banding' => $p->latestAppeal->alasan_banding,
+                        'bukti_pendukung' => $p->latestAppeal->bukti_pendukung ? asset('storage/' . $p->latestAppeal->bukti_pendukung) : null,
+                        'admin_reply' => $p->latestAppeal->admin_reply,
+                    ] : null,
                 ];
             });
 
@@ -200,6 +208,24 @@ public function show($id)
     }])->findOrFail($id);
     $ratings = $produk->orders->pluck('rating')->filter();
 
+    $reviews = \App\Models\Order::with('buyer')
+        ->where('product_id', $id)
+        ->where('status', 'selesai')
+        ->whereNotNull('rating')
+        ->latest('reviewed_at')
+        ->get()
+        ->map(function ($order) {
+            return [
+                'id' => $order->id,
+                'buyer_name' => $order->buyer?->name ?? 'Pembeli Umum',
+                'rating' => $order->rating,
+                'review_text' => $order->review_text,
+                'review_image' => $order->review_image ? asset('storage/' . $order->review_image) : null,
+                'reviewed_at' => $order->reviewed_at ? $order->reviewed_at->format('d M Y') : null,
+                'seller_reply' => $order->seller_reply,
+            ];
+        });
+
     return Inertia::render('User/DetailProduk', [
         'produk' => [
             'id'        => $produk->id,
@@ -210,16 +236,16 @@ public function show($id)
             'warna'     => $produk->warna,
             'ukuran'    => $produk->ukuran,
             'image'     => $produk->image ? asset('storage/' . $produk->image) : null,
-            'toko'      => $produk->user?->name ?? '-',
+            'toko'      => $produk->user?->nama_toko ?? $produk->user?->name ?? '-',
             'user_id'   => $produk->user_id,
             'kategori'  => $produk->category?->nama_kategori ?? '-',
             'category'  => $produk->category,
             'sub_category' => $produk->subCategory,
             'rating'    => $ratings->count() ? round($ratings->avg(), 1) : null,
             'rating_count' => $ratings->count(),
-        ]
+        ],
+        'reviews' => $reviews
     ]);
-
 }
 
 public function storeProfile($id)
@@ -261,5 +287,43 @@ public function create()
     return Inertia::render('User/Product/Create', [
     'categories' => $categories
     ]);
+}
+
+public function submitAppeal(Request $request, $id)
+{
+    $request->validate([
+        'alasan_banding' => 'required|string|max:2000',
+        'bukti_pendukung' => 'required|file|mimes:jpeg,png,jpg,pdf,doc,docx|max:5120',
+    ]);
+
+    $product = Product::where('user_id', Auth::id())->findOrFail($id);
+
+    if ($product->is_active) {
+        return back()->with('error', 'Produk ini masih aktif.');
+    }
+
+    $filePath = $request->file('bukti_pendukung')->store('bukti_banding', 'public');
+
+    \App\Models\ProductAppeal::create([
+        'product_id' => $product->id,
+        'user_id' => Auth::id(),
+        'alasan_dinonaktifkan' => $product->deactivated_reason ?? 'Tidak ada alasan spesifik.',
+        'alasan_banding' => trim($request->alasan_banding),
+        'bukti_pendukung' => $filePath,
+        'status' => 'pending',
+    ]);
+
+    return back()->with('success', 'Pengajuan banding berhasil diajukan.');
+}
+
+public function acknowledgeAppeal($id)
+{
+    $appeal = \App\Models\ProductAppeal::where('user_id', \Illuminate\Support\Facades\Auth::id())->findOrFail($id);
+    
+    $appeal->update([
+        'status' => 'completed'
+    ]);
+
+    return back()->with('success', 'Banding selesai diproses.');
 }
 }
