@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Category;
+use App\Models\Satuan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use App\Http\Controllers\Controller;
@@ -10,33 +11,43 @@ use App\Http\Controllers\Controller;
 class CategoryController extends Controller
 {
     public function index()
-{
-    $categories = Category::with('subCategories')->get();
+    {
+        $categories = Category::with('subCategories')->get();
 
-    return Inertia::render('Admin/Categories/index', [
-        'categories' => $categories
-    ]);
-}
-   public function store(Request $request)
-{
-    $request->validate([
-        'nama_kategori' => 'required|string|max:255',
-        'nama_subkategori' => 'required|string|max:255',
-    ]);
+        return Inertia::render('Admin/Categories/index', [
+            'categories' => $categories
+        ]);
+    }
 
-    // cari atau buat category
-    $category = Category::firstOrCreate([
-        'nama_kategori' => $request->nama_kategori
-    ]);
+    public function indexSatuan()
+    {
+        $satuans = Satuan::all();
 
-    // simpan sub category
-    \App\Models\SubCategory::create([
-        'category_id' => $category->id,
-        'nama_subkategori' => $request->nama_subkategori
-    ]);
+        return Inertia::render('Admin/Categories/Satuan', [
+            'satuans' => $satuans
+        ]);
+    }
 
-    return redirect()->back();
-}
+    public function store(Request $request)
+    {
+        $request->validate([
+            'nama_kategori' => 'required|string|max:255',
+            'nama_subkategori' => 'required|string|max:255',
+        ]);
+
+        // cari atau buat category
+        $category = Category::firstOrCreate([
+            'nama_kategori' => $request->nama_kategori
+        ]);
+
+        // simpan sub category
+        \App\Models\SubCategory::create([
+            'category_id' => $category->id,
+            'nama_subkategori' => $request->nama_subkategori
+        ]);
+
+        return redirect()->back();
+    }
 
     public function update(Request $request, $id)
     {
@@ -65,5 +76,26 @@ class CategoryController extends Controller
         return redirect()
             ->route('admin.categories.index')
             ->with('success', 'Kategori berhasil dihapus');
+    }
+
+    public function storeSatuan(Request $request)
+    {
+        $request->validate([
+            'nama_satuan' => 'required|string|max:255|unique:satuans,nama_satuan',
+        ]);
+
+        Satuan::create([
+            'nama_satuan' => $request->nama_satuan,
+        ]);
+
+        return redirect()->back()->with('success', 'Satuan berhasil ditambahkan');
+    }
+
+    public function destroySatuan($id)
+    {
+        $satuan = Satuan::findOrFail($id);
+        $satuan->delete();
+
+        return redirect()->back()->with('success', 'Satuan berhasil dihapus');
     }
 }

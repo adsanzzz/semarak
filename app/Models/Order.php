@@ -11,6 +11,7 @@ class Order extends Model
     'user_id',
     'buyer_id',
     'jumlah',
+    'variations',
     'total_harga',
     'review_status',
     'rejection_reason',
@@ -29,6 +30,7 @@ class Order extends Model
     protected $casts = [
         'rating' => 'integer',
         'reviewed_at' => 'datetime',
+        'variations' => 'array',
     ];
 
     public function product()

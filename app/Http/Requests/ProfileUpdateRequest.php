@@ -33,8 +33,7 @@ class ProfileUpdateRequest extends FormRequest
             'sosmed_instagram' => ['nullable', 'url', 'max:255'],
             'sosmed_tiktok' => ['nullable', 'url', 'max:255'],
             'qris_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
-            'latitude' => ['nullable', 'numeric', 'between:-90,90'],
-            'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'location_map' => ['nullable', 'string', 'max:1000'],
         ];
     }
 }

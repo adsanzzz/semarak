@@ -53,6 +53,7 @@ class User extends Authenticatable
         'qris_image',
         'latitude',
         'longitude',
+        'location_map',
     ];
 
     /**

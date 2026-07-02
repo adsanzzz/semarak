@@ -68,6 +68,42 @@ function activateProduct(id) {
     })
   }
 }
+
+const activeCarouselIndices = ref({})
+const getProductImageIndex = (product) => {
+  return activeCarouselIndices.value[product.id] || 0
+}
+const prevCarouselImg = (product) => {
+  const current = activeCarouselIndices.value[product.id] || 0
+  const len = product.images_url.length
+  activeCarouselIndices.value[product.id] = (current - 1 + len) % len
+}
+const nextCarouselImg = (product) => {
+  const current = activeCarouselIndices.value[product.id] || 0
+  const len = product.images_url.length
+  activeCarouselIndices.value[product.id] = (current + 1) % len
+}
+
+const showDetailModal = ref(false)
+const selectedProduct = ref(null)
+const activeDetailImageIndex = ref(0)
+const openDetailModal = (product) => {
+  selectedProduct.value = product
+  activeDetailImageIndex.value = 0
+  showDetailModal.value = true
+}
+const prevDetailImg = () => {
+  if (selectedProduct.value && selectedProduct.value.images_url) {
+    const len = selectedProduct.value.images_url.length
+    activeDetailImageIndex.value = (activeDetailImageIndex.value - 1 + len) % len
+  }
+}
+const nextDetailImg = () => {
+  if (selectedProduct.value && selectedProduct.value.images_url) {
+    const len = selectedProduct.value.images_url.length
+    activeDetailImageIndex.value = (activeDetailImageIndex.value + 1) % len
+  }
+}
 </script>
 
 <template>
@@ -137,9 +173,11 @@ function activateProduct(id) {
             <thead class="bg-gray-50/75">
               <tr class="text-left text-gray-500 font-bold text-xs uppercase tracking-wider">
                 <th class="px-6 py-4 w-16 text-center">ID</th>
+                <th class="px-6 py-4 w-20 text-center">Gambar</th>
                 <th class="px-6 py-4 w-48">Nama Produk</th>
                 <th class="px-6 py-4">Deskripsi</th>
                 <th class="px-6 py-4">Kategori</th>
+                <th class="px-6 py-4">Variasi</th>
                 <th class="px-6 py-4">Toko Penjual</th>
                 <th class="px-6 py-4 w-32">Harga</th>
                 <th class="px-6 py-4 w-20 text-center">Stok</th>
@@ -156,6 +194,50 @@ function activateProduct(id) {
                 <!-- ID -->
                 <td class="px-6 py-4 whitespace-nowrap text-center text-gray-400 font-mono text-xs">
                   #{{ product.id }}
+                </td>
+
+                <!-- Gambar -->
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                  <div v-if="product.images_url && product.images_url.length > 1" class="relative w-12 h-12 mx-auto group">
+                    <div class="w-full h-full rounded-lg overflow-hidden border border-gray-200 shadow-xs relative">
+                      <img 
+                        :src="product.images_url[getProductImageIndex(product)]" 
+                        class="w-full h-full object-cover transition-all duration-300"
+                        alt="Gambar Produk"
+                      />
+                    </div>
+                    
+                    <button 
+                      type="button" 
+                      @click.stop="prevCarouselImg(product)"
+                      class="absolute left-0 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-r p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75 cursor-pointer z-10 text-[10px] select-none font-bold"
+                    >
+                      &lsaquo;
+                    </button>
+                    <button 
+                      type="button" 
+                      @click.stop="nextCarouselImg(product)"
+                      class="absolute right-0 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-l p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75 cursor-pointer z-10 text-[10px] select-none font-bold"
+                    >
+                      &rsaquo;
+                    </button>
+                    
+                    <div class="absolute -bottom-1.5 left-0 right-0 flex justify-center gap-0.5 z-10">
+                      <span 
+                        v-for="(img, imgIdx) in product.images_url" 
+                        :key="imgIdx"
+                        class="w-1 h-1 rounded-full transition-all"
+                        :class="getProductImageIndex(product) === imgIdx ? 'bg-indigo-600 w-1.5' : 'bg-gray-300'"
+                      ></span>
+                    </div>
+                  </div>
+                  <div v-else class="relative w-12 h-12 mx-auto">
+                    <img 
+                      :src="product.image_url || 'https://via.placeholder.com/150'" 
+                      class="w-full h-full object-cover rounded-lg border border-gray-200 shadow-xs mx-auto transition"
+                      alt="Gambar"
+                    />
+                  </div>
                 </td>
                 
                 <!-- Nama & Matched Keywords -->
@@ -187,6 +269,23 @@ function activateProduct(id) {
                   </div>
                 </td>
 
+                <!-- Variasi -->
+                <td class="px-6 py-4 whitespace-nowrap">
+                  <div v-if="product.variations && product.variations.length > 0" class="space-y-2 text-xs">
+                    <div v-for="(v, idx) in product.variations" :key="idx" class="text-left">
+                      <span class="font-bold text-gray-400 uppercase tracking-wider block mb-0.5 text-[10px]">{{ v.name }}</span>
+                      <ul class="list-disc list-inside text-gray-500 pl-1 text-[11px] space-y-0.5">
+                        <li v-for="opt in v.options" :key="opt" class="list-none flex items-center gap-1 font-semibold text-gray-600">
+                          <span class="text-gray-400 text-[10px] font-bold">&bull;</span> {{ opt }}
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                  <span v-else class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-400 border border-gray-200">
+                    Tidak ada variasi
+                  </span>
+                </td>
+
                 <!-- Toko -->
                 <td class="px-6 py-4 whitespace-nowrap">
                   <div class="font-medium text-gray-700">{{ product.user?.nama_toko || '-' }}</div>
@@ -212,6 +311,16 @@ function activateProduct(id) {
                 <td class="px-6 py-4 whitespace-nowrap text-center">
                   <div class="flex justify-center gap-2">
                     <button
+                      @click="openDetailModal(product)"
+                      class="inline-flex items-center gap-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer border border-indigo-100"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-3.5 h-3.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                      </svg>
+                      Detail
+                    </button>
+                    <button
                       v-if="product.is_active"
                       @click="openDeactivateModal(product.id)"
                       class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition cursor-pointer"
@@ -236,7 +345,7 @@ function activateProduct(id) {
               </tr>
 
               <tr v-if="products.length === 0">
-                <td colspan="8" class="py-16 text-center text-gray-400">
+                <td colspan="10" class="py-16 text-center text-gray-400">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-12 h-12 mx-auto text-gray-300 mb-3">
                     <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.637 10.637Z" />
                   </svg>
@@ -282,4 +391,106 @@ function activateProduct(id) {
     </transition>
 
   </AdminLayout>
+
+  <!-- 🔍 MODAL DETAIL PRODUK -->
+  <transition name="fade">
+    <div v-if="showDetailModal && selectedProduct" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div class="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl border border-gray-100 transition-all duration-300 flex flex-col md:flex-row gap-6 max-h-[90vh] overflow-y-auto relative">
+        <!-- Close Button (top-right) -->
+        <button @click="showDetailModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition cursor-pointer">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <!-- Left: Image Slider -->
+        <div class="w-full md:w-1/2 space-y-3">
+          <div class="relative w-full h-64 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex items-center justify-center group shadow-xs">
+            <img 
+              :src="selectedProduct.images_url[activeDetailImageIndex] || 'https://via.placeholder.com/300'" 
+              class="w-full h-full object-cover transition-all"
+            />
+            <button 
+              v-if="selectedProduct.images_url.length > 1" 
+              type="button" 
+              @click="prevDetailImg"
+              class="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow select-none cursor-pointer font-bold"
+            >
+              &lsaquo;
+            </button>
+            <button 
+              v-if="selectedProduct.images_url.length > 1" 
+              type="button" 
+              @click="nextDetailImg"
+              class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow select-none cursor-pointer font-bold"
+            >
+              &rsaquo;
+            </button>
+          </div>
+          <!-- Thumbnails -->
+          <div v-if="selectedProduct.images_url.length > 1" class="flex gap-2 overflow-x-auto pb-1">
+            <button 
+              v-for="(img, idx) in selectedProduct.images_url" 
+              :key="idx"
+              @click="activeDetailImageIndex = idx"
+              class="w-14 h-14 rounded-lg overflow-hidden border-2 flex-shrink-0"
+              :class="activeDetailImageIndex === idx ? 'border-indigo-600' : 'border-gray-200'"
+            >
+              <img :src="img" class="w-full h-full object-cover" />
+            </button>
+          </div>
+        </div>
+        <!-- Right: Details Info -->
+        <div class="flex-1 space-y-4 text-left">
+          <div>
+            <span class="inline-block px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+              {{ selectedProduct.category?.nama_kategori || '-' }}
+            </span>
+            <h3 class="text-xl font-bold text-gray-800 mt-1">{{ selectedProduct.nama }}</h3>
+            <p class="text-2xl font-extrabold text-blue-600 mt-1">Rp{{ Number(selectedProduct.harga).toLocaleString('id-ID') }}</p>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3 text-xs bg-gray-50 p-3 rounded-xl border border-gray-100">
+            <div>
+              <span class="text-gray-400 block uppercase font-bold text-[10px]">Stok</span>
+              <span class="text-gray-700 font-bold">{{ selectedProduct.stok }} {{ selectedProduct.satuan || '' }}</span>
+            </div>
+            <div>
+              <span class="text-gray-400 block uppercase font-bold text-[10px]">Toko Penjual</span>
+              <span class="text-gray-700 font-bold block leading-tight">{{ selectedProduct.user?.nama_toko || '-' }}</span>
+              <span class="text-gray-400 text-[10px] block mt-0.5">({{ selectedProduct.user?.name || '-' }})</span>
+            </div>
+          </div>
+
+          <!-- Variasi -->
+          <div>
+            <span class="text-gray-400 block uppercase font-bold text-[10px] mb-1">Variasi Produk</span>
+            <div v-if="selectedProduct.variations && selectedProduct.variations.length > 0" class="flex flex-wrap gap-2">
+              <span v-for="(v, vIdx) in selectedProduct.variations" :key="vIdx" class="inline-flex items-center gap-1.5 bg-gray-50 border border-gray-200 text-gray-600 px-3 py-1 rounded-xl text-xs font-semibold">
+                <span class="font-bold text-gray-400 uppercase text-[10px]">{{ v.name }}:</span>
+                <span class="text-gray-700 font-bold">{{ v.options.join(', ') }}</span>
+              </span>
+            </div>
+            <span v-else class="text-xs text-gray-400 bg-gray-50 border border-gray-100 px-3 py-1 rounded-xl inline-block font-semibold">
+              Tidak ada variasi
+            </span>
+          </div>
+
+          <!-- Deskripsi -->
+          <div>
+            <span class="text-gray-400 block uppercase font-bold text-[10px] mb-1">Deskripsi</span>
+            <p class="text-xs text-gray-600 leading-relaxed whitespace-pre-line max-h-32 overflow-y-auto bg-gray-50/50 p-2.5 rounded-lg border border-gray-100">
+              {{ selectedProduct.deskripsi || 'Tidak ada deskripsi' }}
+            </p>
+          </div>
+
+          <div class="flex justify-end pt-2">
+            <button @click="showDetailModal = false" class="w-full md:w-auto rounded-xl bg-indigo-600 hover:bg-indigo-700 px-6 py-2.5 text-sm font-bold text-white shadow transition cursor-pointer">
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </transition>
 </template>

@@ -142,6 +142,7 @@ Route::delete('/orders/{id}', [OrderController::class, 'destroy'])
     // KERANJANG
     Route::get('/keranjang', [KeranjangController::class, 'index'])->name('keranjang.index');
     Route::post('/keranjang', [KeranjangController::class, 'store'])->name('keranjang.store');
+    Route::post('/keranjang/update', [KeranjangController::class, 'update'])->name('keranjang.update');
     Route::delete('/keranjang', [KeranjangController::class, 'destroy'])->name('keranjang.destroy');
 
     // CHECKOUT
@@ -155,6 +156,12 @@ Route::delete('/orders/{id}', [OrderController::class, 'destroy'])
 
     Route::post('/checkout/prepare/cart', [CheckoutController::class, 'prepareFromCart'])
         ->name('checkout.prepare.cart');
+
+    Route::post('/checkout/update', [CheckoutController::class, 'updateItem'])
+        ->name('checkout.update');
+
+    Route::post('/resolve-maps-link', [CheckoutController::class, 'resolveMapsLink'])
+        ->name('resolve-maps-link');
 
     Route::post('/checkout', [CheckoutController::class, 'store'])
         ->name('checkout.store');
@@ -228,6 +235,9 @@ Route::middleware(['auth', 'verified'])
         Route::post('/categories', 'store')->name('categories.store');
         Route::put('/categories/{id}', 'update')->name('categories.update');
         Route::delete('/categories/{id}', 'destroy')->name('categories.destroy');
+        Route::get('/satuans', 'indexSatuan')->name('satuans.index');
+        Route::post('/satuans', 'storeSatuan')->name('satuans.store');
+        Route::delete('/satuans/{id}', 'destroySatuan')->name('satuans.destroy');
     });
 
     // SUB CATEGORY
@@ -238,6 +248,7 @@ Route::controller(SubCategoryController::class)->group(function () {
 
     // 👤 USERS
     Route::controller(\App\Http\Controllers\Admin\UserController::class)->group(function () {
+        Route::get('/users/reported', 'reportedAccounts')->name('users.reported');
         Route::get('/users', 'index')->name('users.index');
         Route::delete('/users/{id}', 'destroy')->name('users.destroy');
         Route::post('/users/{id}/deactivate', 'deactivate')->name('users.deactivate');
@@ -264,6 +275,10 @@ Route::controller(SubCategoryController::class)->group(function () {
     // 📢 KOMPLAIN
     Route::get('/komplain', [AdminController::class, 'complaints'])
         ->name('komplain');
+    Route::get('/komplain/pembeli', [AdminController::class, 'buyerComplaints'])
+        ->name('komplain.buyer');
+    Route::get('/komplain/penjual', [AdminController::class, 'sellerComplaints'])
+        ->name('komplain.seller');
     Route::post('/komplain', [AdminController::class, 'storeComplaint'])
         ->name('komplain.store');
     Route::post('/komplain/{id}/forward', [AdminController::class, 'forwardComplaint'])
@@ -284,8 +299,13 @@ Route::controller(SubCategoryController::class)->group(function () {
         ->name('products.activate');
 
     // APPEALS (PENGAJUAN BANDING)
-    Route::get('/appeals', [AdminController::class, 'appeals'])
-        ->name('appeals.index');
+    Route::get('/appeals', function() {
+        return redirect()->route('admin.appeals.product');
+    })->name('appeals.index');
+    Route::get('/appeals/product', [AdminController::class, 'productAppeals'])
+        ->name('appeals.product');
+    Route::get('/appeals/account', [AdminController::class, 'accountAppeals'])
+        ->name('appeals.account');
     Route::post('/appeals/{id}/reply', [AdminController::class, 'replyAppeal'])
         ->name('appeals.reply');
 

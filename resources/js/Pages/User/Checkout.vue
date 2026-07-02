@@ -18,6 +18,92 @@ const props = defineProps({
     },
 })
 
+const localCheckoutItems = ref([...props.checkoutItems])
+const localSummary = ref({ ...props.summary })
+
+watch(() => props.checkoutItems, (newVal) => {
+    localCheckoutItems.value = [...newVal]
+}, { deep: true })
+watch(() => props.summary, (newVal) => {
+    localSummary.value = { ...newVal }
+}, { deep: true })
+
+const isUpdating = ref(false)
+
+const changeQty = async (item, amount) => {
+    if (isUpdating.value) return
+    const newQty = item.qty + amount
+    if (newQty < 1) return
+    if (newQty > (item.stok ?? 9999)) {
+        alert('Jumlah melebihi stok yang tersedia')
+        return
+    }
+
+    isUpdating.value = true
+    try {
+        const res = await fetch(route('checkout.update'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({
+                product_id: item.product_id,
+                variations: item.variations,
+                qty: newQty
+            })
+        })
+        const data = await res.json()
+        if (!res.ok) {
+            alert(data.error || 'Gagal mengubah jumlah')
+            return
+        }
+        localCheckoutItems.value = data.checkoutItems
+        localSummary.value = data.summary
+    } catch (err) {
+        console.error(err)
+        alert('Terjadi kesalahan')
+    } finally {
+        isUpdating.value = false
+    }
+}
+
+const updateQtyInput = async (item) => {
+    if (item.qty < 1) {
+        item.qty = 1
+    } else if (item.qty > (item.stok ?? 9999)) {
+        item.qty = item.stok ?? 9999
+        alert('Jumlah melebihi stok yang tersedia')
+    }
+
+    isUpdating.value = true
+    try {
+        const res = await fetch(route('checkout.update'), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+            },
+            body: JSON.stringify({
+                product_id: item.product_id,
+                variations: item.variations,
+                qty: item.qty
+            })
+        })
+        const data = await res.json()
+        if (!res.ok) {
+            alert(data.error || 'Gagal mengubah jumlah')
+            return
+        }
+        localCheckoutItems.value = data.checkoutItems
+        localSummary.value = data.summary
+    } catch (err) {
+        console.error(err)
+    } finally {
+        isUpdating.value = false
+    }
+}
+
 const allStoresHaveQris = computed(() => {
     if (!props.stores || props.stores.length === 0) return false
     return props.stores.every(store => !!store.qris_image)
@@ -67,23 +153,36 @@ const DEFAULT_LNG = 110.849
 // Parse coordinates from link
 const buyerCoordinates = computed(() => {
     if (!form.location_map) return null
-    const regex = /(?:q=|place\/|query=)(-?\d+\.\d+),(-?\d+\.\d+)/
-    const match = form.location_map.match(regex)
+    const match = form.location_map.match(/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/)
     if (match) {
         return {
             lat: parseFloat(match[1]),
             lng: parseFloat(match[2])
         }
     }
-    const simpleRegex = /^(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)$/
-    const simpleMatch = form.location_map.trim().match(simpleRegex)
-    if (simpleMatch) {
-        return {
-            lat: parseFloat(simpleMatch[1]),
-            lng: parseFloat(simpleMatch[2])
+    return null
+})
+
+watch(() => form.location_map, async (newVal) => {
+    if (!newVal) return
+    if (newVal.includes('maps.app.goo.gl') || newVal.includes('goo.gl')) {
+        try {
+            const res = await fetch(route('resolve-maps-link'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({ url: newVal })
+            })
+            const data = await res.json()
+            if (data.success) {
+                form.location_map = `${data.lat},${data.lng}`
+            }
+        } catch (err) {
+            console.error(err)
         }
     }
-    return null
 })
 
 // Haversine distance formula
@@ -169,23 +268,67 @@ function submitCheckout() {
 
                 <div class="space-y-4">
                     <div
-                        v-for="item in checkoutItems"
+                        v-for="item in localCheckoutItems"
                         :key="item.product_id"
-                        class="flex items-center gap-4 border rounded-lg p-3"
+                        class="flex items-center gap-4 border rounded-xl p-4 shadow-3xs"
                     >
-                        <img :src="item.image" alt="produk" class="w-16 h-16 rounded object-cover border" />
-                        <div class="flex-1">
-                            <p class="font-semibold text-gray-900">{{ item.name }}</p>
-                            <p class="text-sm text-gray-500">Toko: {{ item.seller?.nama_toko || item.seller?.name || '-' }}</p>
-                            <p class="text-sm text-gray-500">Jumlah: {{ item.qty }}</p>
+                        <img :src="item.image" alt="produk" class="w-16 h-16 rounded-lg object-cover border" />
+                        <div class="flex-1 text-left">
+                            <p class="font-bold text-gray-900 text-sm md:text-base">{{ item.name }}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">Toko: {{ item.seller?.nama_toko || item.seller?.name || '-' }}</p>
+                            <p class="text-xs text-gray-400 font-medium">Harga Satuan: Rp {{ formatCurrency(item.price) }}</p>
+                            
+                            <!-- Variations Display -->
+                            <div v-if="item.variations && Object.keys(item.variations).length > 0" class="flex flex-wrap gap-1 mt-1.5">
+                                <span 
+                                    v-for="(val, key) in item.variations" 
+                                    :key="key"
+                                    class="inline-block bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded border border-gray-200"
+                                >
+                                    {{ key }}: {{ val }}
+                                </span>
+                            </div>
                         </div>
-                        <p class="font-bold text-blue-600">Rp {{ formatCurrency(item.subtotal) }}</p>
+
+                        <!-- Quantity Selector -->
+                        <div class="flex items-center gap-1">
+                            <button 
+                                type="button" 
+                                @click="changeQty(item, -1)" 
+                                :disabled="item.qty <= 1"
+                                class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition select-none cursor-pointer text-sm font-bold"
+                            >
+                                &minus;
+                            </button>
+                            
+                            <input
+                                type="number"
+                                v-model.number="item.qty"
+                                @input="updateQtyInput(item)"
+                                class="w-12 h-8 border border-gray-200 rounded-lg text-center text-sm font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                min="1"
+                            />
+
+                            <button 
+                                type="button" 
+                                @click="changeQty(item, 1)" 
+                                :disabled="item.qty >= (item.stok ?? 9999)"
+                                class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition select-none cursor-pointer text-sm font-bold"
+                            >
+                                &plus;
+                            </button>
+                        </div>
+
+                        <div class="text-right pl-4">
+                            <span class="text-[10px] text-gray-400 block font-semibold uppercase">Subtotal</span>
+                            <span class="font-extrabold text-blue-600 text-sm md:text-base">Rp {{ formatCurrency(item.subtotal) }}</span>
+                        </div>
                     </div>
                 </div>
 
                 <div class="mt-4 pt-4 border-t flex items-center justify-between text-sm md:text-base">
-                    <span class="font-medium text-gray-700">Total {{ summary.total_items }} item</span>
-                    <span class="font-bold text-xl text-blue-700">Rp {{ formatCurrency(summary.total_price) }}</span>
+                    <span class="font-medium text-gray-700">Total {{ localSummary.total_items }} item</span>
+                    <span class="font-bold text-xl text-blue-700">Rp {{ formatCurrency(localSummary.total_price) }}</span>
                 </div>
             </div>
 

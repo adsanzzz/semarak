@@ -107,4 +107,40 @@ class UserController extends Controller
 
         return back()->with('success', 'Akun penjual berhasil diaktifkan kembali.');
     }
+
+    public function reportedAccounts()
+    {
+        \App\Models\Complaint::where(function ($q) {
+                $q->where('complaint_type', 'report_account')
+                  ->orWhereNotNull('reported_user_id');
+            })
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        $reports = \App\Models\Complaint::with(['user', 'reportedUser'])
+            ->where('complaint_type', 'report_account')
+            ->orWhereNotNull('reported_user_id')
+            ->latest()
+            ->get()
+            ->map(function ($r) {
+                return [
+                    'id' => $r->id,
+                    'reporter_name' => $r->user?->name ?: $r->sender_name ?: 'N/A',
+                    'reported_user_id' => $r->reported_user_id,
+                    'reported_name' => $r->reportedUser?->name ?: 'N/A',
+                    'reported_nama_toko' => $r->reportedUser?->nama_toko ?: '-',
+                    'reported_email' => $r->reportedUser?->email ?: '-',
+                    'reported_role' => $r->reportedUser?->role ?: 0,
+                    'reported_is_active' => (bool) ($r->reportedUser?->is_active ?? true),
+                    'reason' => $r->subject ?: '-',
+                    'description' => $r->issue_description ?: '-',
+                    'bukti' => $r->bukti ? asset('storage/' . $r->bukti) : null,
+                    'created_at' => $r->created_at ? $r->created_at->format('d M Y H:i') : '-',
+                ];
+            });
+
+        return Inertia::render('Admin/Users/ReportedAccounts', [
+            'reports' => $reports,
+        ]);
+    }
 }

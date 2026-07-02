@@ -26,6 +26,11 @@ class Complaint extends Model
         'reported_user_id',
         'reported_product_id',
         'bukti',
+        'is_read',
+    ];
+
+    protected $casts = [
+        'is_read' => 'boolean',
     ];
 
     public function user()

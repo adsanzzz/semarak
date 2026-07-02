@@ -55,9 +55,13 @@ class ComplaintController extends Controller
             'name_or_store' => 'required|string|max:255',
             'issue_description' => 'required|string',
             'input' => 'required|string',
+            'type' => 'nullable|string',
         ]);
 
         $complaintType = auth()->user()?->role === 2 ? 'seller' : 'buyer';
+        if ($request->input('type') === 'appeal_account') {
+            $complaintType = 'appeal_account';
+        }
 
         Complaint::create([
             'user_id' => auth()->id(),

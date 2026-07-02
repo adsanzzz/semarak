@@ -24,7 +24,15 @@ const page = usePage();
 const openSubmenu = ref(
   page.url.startsWith('/admin/products') 
     ? "Kelola Produk" 
-    : null
+    : (page.url.startsWith('/admin/categories') || page.url.startsWith('/admin/satuans')
+      ? "Kelola Kategori"
+      : (page.url.startsWith('/admin/komplain')
+        ? "Kelola Pengaduan"
+        : (page.url.startsWith('/admin/users')
+          ? "Kelola Akun"
+          : (page.url.startsWith('/admin/appeals')
+            ? "Pengajuan Banding"
+            : null))))
 ); // track submenu terbuka
 const user = computed(() => page.props.auth?.user || {});
 const userRole = computed(() => Number(user.value.role || 0));
@@ -42,7 +50,15 @@ const menus = computed(() => {
     // Admin
     return [
       { name: "Dashboard", icon: HomeIcon, route: route('admin.dashboard') },
-      { name: "Kelola Kategori", icon: TicketIcon, route: route('admin.categories.index') },
+      {
+        name: "Kelola Kategori",
+        icon: TicketIcon,
+        route: "/admin/categories",
+        children: [
+          { name: "Category - Sub Category", route: route('admin.categories.index') },
+          { name: "Satuan Produk", route: route('admin.satuans.index') },
+        ]
+      },
       {
         name: "Kelola Produk",
         icon: ArchiveBoxIcon,
@@ -54,9 +70,33 @@ const menus = computed(() => {
       },
       { name: "Kelola Pesanan", icon: ShoppingBagIcon, route: route('admin.orders') },
       { name: "Filter Peninjauan", icon: TicketIcon, route: route('admin.moderation.index') },
-      { name: "Kelola Akun", icon: Cog6ToothIcon, route: "/admin/users" },
-      { name: "Kelola Pengaduan Komplain", icon: StarIcon, route: route('admin.komplain') },
-      { name: "Pengajuan Banding", icon: ArchiveBoxIcon, route: "/admin/appeals" },
+      {
+        name: "Kelola Akun",
+        icon: Cog6ToothIcon,
+        route: "/admin/users",
+        children: [
+          { name: "Daftar Akun", route: route('admin.users.index') },
+          { name: "Laporan Akun", route: route('admin.users.reported') },
+        ]
+      },
+      {
+        name: "Kelola Pengaduan",
+        icon: StarIcon,
+        route: "/admin/komplain",
+        children: [
+          { name: "Komplain Pembeli", route: route('admin.komplain.buyer') },
+          { name: "Komplain Penjual", route: route('admin.komplain.seller') },
+        ]
+      },
+      {
+        name: "Pengajuan Banding",
+        icon: ArchiveBoxIcon,
+        route: "/admin/appeals",
+        children: [
+          { name: "Banding Produk", route: route('admin.appeals.product') },
+          { name: "Banding Akun", route: route('admin.appeals.account') },
+        ]
+      },
     ];
     } else {
     // Toko
@@ -75,6 +115,14 @@ const menus = computed(() => {
 const currentUrl = page.url;
 const isToko = computed(() => userRole.value === 2);
 const chatUnreadCount = computed(() => page.props.chat_unread_count || 0);
+const pendingAppealsCount = computed(() => page.props.pending_appeals_count || 0);
+const newComplaintsCount = computed(() => page.props.new_complaints_count || 0);
+const reportedAccountsCount = computed(() => page.props.reported_accounts_count || 0);
+
+const pendingProductAppealsCount = computed(() => page.props.pending_product_appeals_count || 0);
+const pendingAccountAppealsCount = computed(() => page.props.pending_account_appeals_count || 0);
+const newBuyerComplaintsCount = computed(() => page.props.new_buyer_complaints_count || 0);
+const newSellerComplaintsCount = computed(() => page.props.new_seller_complaints_count || 0);
 
 // Toggle submenu
 const toggleSubmenu = (name) => {
@@ -123,6 +171,24 @@ const toggleSubmenu = (name) => {
             <span v-show="isOpen" class="text-sm font-medium">
               {{ menu.name }}
             </span>
+            <span
+              v-if="menu.name === 'Kelola Pengaduan' && newComplaintsCount > 0"
+              class="min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ml-2"
+            >
+              {{ newComplaintsCount }}
+            </span>
+            <span
+              v-if="menu.name === 'Pengajuan Banding' && pendingAppealsCount > 0"
+              class="min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ml-2"
+            >
+              {{ pendingAppealsCount }}
+            </span>
+            <span
+              v-if="menu.name === 'Kelola Akun' && reportedAccountsCount > 0"
+              class="min-w-[18px] h-[18px] px-1.5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center ml-2"
+            >
+              {{ reportedAccountsCount }}
+            </span>
           </div>
           <ChevronDownIcon
             v-if="isOpen && openSubmenu === menu.name"
@@ -145,13 +211,43 @@ const toggleSubmenu = (name) => {
               :key="child.name"
               :href="child.route"
               :class="[
-                  'block px-3 py-2 rounded-lg text-sm transition',
+                  'flex items-center justify-between px-3 py-2 rounded-lg text-sm transition',
                 currentUrl.startsWith(child.route)
-                    ? 'bg-yellow-200 text-black'
+                    ? 'bg-yellow-200 text-black font-bold'
                     : 'text-gray-600 hover:bg-yellow-100'
               ]"
             >
-              {{ child.name }}
+              <span>{{ child.name }}</span>
+              <span
+                v-if="child.name === 'Komplain Pembeli' && newBuyerComplaintsCount > 0"
+                class="min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"
+              >
+                {{ newBuyerComplaintsCount }}
+              </span>
+              <span
+                v-if="child.name === 'Komplain Penjual' && newSellerComplaintsCount > 0"
+                class="min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"
+              >
+                {{ newSellerComplaintsCount }}
+              </span>
+              <span
+                v-if="child.name === 'Banding Produk' && pendingProductAppealsCount > 0"
+                class="min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"
+              >
+                {{ pendingProductAppealsCount }}
+              </span>
+              <span
+                v-if="child.name === 'Banding Akun' && pendingAccountAppealsCount > 0"
+                class="min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"
+              >
+                {{ pendingAccountAppealsCount }}
+              </span>
+              <span
+                v-if="child.name === 'Laporan Akun' && reportedAccountsCount > 0"
+                class="min-w-[16px] h-[16px] px-1 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center"
+              >
+                {{ reportedAccountsCount }}
+              </span>
             </Link>
           </div>
         </transition>

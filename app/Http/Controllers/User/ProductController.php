@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\User;
 use App\Models\Category;
 use App\Models\SubCategory;
+use App\Models\Satuan;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\Auth;
@@ -58,7 +59,6 @@ public function index()
 
     public function store(Request $request)
     {
-    
         $request->validate([
             'nama'        => 'required|string|max:255',
             'harga'       => 'required|integer',
@@ -69,12 +69,18 @@ public function index()
             'warna'       => 'nullable|string|max:100',
             'ukuran'      => 'nullable|string|max:100',
             'berat'       => 'nullable|integer',
-            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'satuan'      => 'nullable|string|max:255',
+            'images'      => 'nullable|array|max:5',
+            'images.*'    => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'variations'  => 'nullable|array',
         ]);
 
-        $imagePath = $request->hasFile('image')
-            ? $request->file('image')->store('produk', 'public')
-            : null;
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $imagePaths[] = $file->store('produk', 'public');
+            }
+        }
 
         $kategori = Category::find($request->kategori_id);
         Product::create([
@@ -89,7 +95,9 @@ public function index()
             'warna'          => $request->warna,
             'ukuran'         => $request->ukuran,
             'berat'          => $request->berat,
-            'image'          => $imagePath,
+            'satuan'         => $request->satuan,
+            'image'          => count($imagePaths) > 0 ? json_encode($imagePaths) : null,
+            'variations'     => $request->variations,
         ]);
 
         return back()->with('success', 'Produk berhasil ditambahkan');
@@ -101,24 +109,34 @@ public function index()
     public function update(Request $request, $id)
     {
         $request->validate([
-            'nama'        => 'required|string|max:255',
-            'harga'       => 'required|integer',
-            'stok'        => 'required|integer',
-            'kategori_id' => 'required|exists:categories,id',
+            'nama'            => 'required|string|max:255',
+            'harga'           => 'required|integer',
+            'stok'            => 'required|integer',
+            'kategori_id'     => 'required|exists:categories,id',
             'sub_kategori_id' => 'nullable|exists:sub_categories,id',
-            'deskripsi'   => 'nullable|string',
-            'warna'       => 'nullable|string|max:100',
-            'ukuran'      => 'nullable|string|max:100',
-            'berat'       => 'nullable|integer',
-            'image'       => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'deskripsi'       => 'nullable|string',
+            'warna'           => 'nullable|string|max:100',
+            'ukuran'          => 'nullable|string|max:100',
+            'berat'           => 'nullable|integer',
+            'satuan'          => 'nullable|string|max:255',
+            'images'          => 'nullable|array|max:5',
+            'images.*'        => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
+            'existing_images' => 'nullable|array',
+            'variations'      => 'nullable|array',
         ]);
 
         $product = Product::where('user_id', Auth::id())->findOrFail($id);
 
-        $imagePath = $product->image;
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('produk', 'public');
+        $existingImages = $request->input('existing_images', []);
+        $newImages = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $file) {
+                $newImages[] = $file->store('produk', 'public');
+            }
         }
+
+        $finalImages = array_merge($existingImages, $newImages);
+        $imageValue = count($finalImages) > 0 ? json_encode($finalImages) : null;
 
         $kategori = Category::find($request->kategori_id);
         $product->update([
@@ -132,7 +150,9 @@ public function index()
             'warna'          => $request->warna,
             'ukuran'         => $request->ukuran,
             'berat'          => $request->berat,
-            'image'          => $imagePath,
+            'satuan'         => $request->satuan,
+            'image'          => $imageValue,
+            'variations'     => $request->variations,
         ]);
 
         return back()->with('success', 'Produk berhasil diperbarui');
@@ -172,7 +192,11 @@ public function index()
                     'warna'     => $p->warna,
                     'ukuran'    => $p->ukuran,
                     'berat'     => $p->berat,
+                    'satuan'    => $p->satuan,
+                    'variations'=> $p->variations,
                     'image_url' => $p->image ? asset('storage/' . $p->image) : null,
+                    'images_url'=> $p->images_url,
+                    'images'    => $p->images,
                     'is_active' => (bool) $p->is_active,
                     'deactivated_reason' => $p->deactivated_reason,
                     'latest_appeal' => $p->latestAppeal ? [
@@ -184,22 +208,24 @@ public function index()
                 ];
             });
 
-    $categories = Category::with('subCategories')->get();
+        $categories = Category::with('subCategories')->get();
+        $satuans = Satuan::all();
 
-$subCategories = SubCategory::all()->map(function ($s) {
-    return [
-        'id' => $s->id,
-        'nama_sub_kategori' => $s->nama_subkategori,
-        'kategori_id' => $s->category_id,
-    ];
-});
+        $subCategories = SubCategory::all()->map(function ($s) {
+            return [
+                'id' => $s->id,
+                'nama_sub_kategori' => $s->nama_subkategori,
+                'kategori_id' => $s->category_id,
+            ];
+        });
 
-return Inertia::render('User/KelolaProduk', [
-    'products' => $products,
-    'categories' => $categories,
-    'subCategories' => $subCategories,
-]);
-}
+        return Inertia::render('User/KelolaProduk', [
+            'products' => $products,
+            'categories' => $categories,
+            'subCategories' => $subCategories,
+            'satuans' => $satuans,
+        ]);
+    }
 
 public function show($id)
 {
@@ -235,12 +261,14 @@ public function show($id)
             'deskripsi' => $produk->deskripsi,
             'warna'     => $produk->warna,
             'ukuran'    => $produk->ukuran,
-            'image'     => $produk->image ? asset('storage/' . $produk->image) : null,
+            'image'     => $produk->cover_image_url,
+            'images'    => $produk->images_url,
             'toko'      => $produk->user?->nama_toko ?? $produk->user?->name ?? '-',
             'user_id'   => $produk->user_id,
             'kategori'  => $produk->category?->nama_kategori ?? '-',
             'category'  => $produk->category,
             'sub_category' => $produk->subCategory,
+            'variations'=> $produk->variations,
             'rating'    => $ratings->count() ? round($ratings->avg(), 1) : null,
             'rating_count' => $ratings->count(),
         ],

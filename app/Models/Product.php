@@ -22,8 +22,20 @@ class Product extends Model
         'warna',
         'ukuran',
         'berat',
+        'satuan',
         'is_active',
         'deactivated_reason',
+        'variations',
+    ];
+
+    protected $casts = [
+        'variations' => 'array',
+    ];
+
+    protected $appends = [
+        'images',
+        'images_url',
+        'cover_image_url',
     ];
 
     // Relasi ke User (pemilik produk)
@@ -61,5 +73,44 @@ public function subCategory()
     public function latestAppeal()
     {
         return $this->hasOne(ProductAppeal::class)->latestOfMany();
+    }
+
+    public function getImageAttribute($value)
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return count($decoded) > 0 ? $decoded[0] : null;
+        }
+
+        return $value;
+    }
+
+    public function getImagesAttribute()
+    {
+        $value = $this->attributes['image'] ?? null;
+        if (empty($value)) {
+            return [];
+        }
+
+        $decoded = json_decode($value, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            return $decoded;
+        }
+
+        return [$value];
+    }
+
+    public function getImagesUrlAttribute()
+    {
+        return array_map(fn($img) => asset('storage/' . $img), $this->images);
+    }
+
+    public function getCoverImageUrlAttribute()
+    {
+        return $this->image ? asset('storage/' . $this->image) : null;
     }
 }

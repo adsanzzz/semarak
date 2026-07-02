@@ -20,6 +20,102 @@ class AdminController extends Controller
         ]);
     }
 
+    public function buyerComplaints()
+    {
+        Complaint::whereIn('complaint_type', ['buyer', 'report_product'])
+            ->orWhere(function ($fallbackQuery) {
+                $fallbackQuery->whereNull('complaint_type')
+                    ->whereHas('user', function ($userQuery) {
+                        $userQuery->whereIn('role', [1, 3]);
+                    });
+            })
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        $forwardedIds = Complaint::whereNotNull('forwarded_from_id')->pluck('forwarded_from_id')->all();
+
+        $buyerComplaints = Complaint::with(['user', 'order.product.user', 'reportedProduct.user', 'reportedUser', 'forwardedFrom'])
+            ->where(function ($query) {
+                $query->whereIn('complaint_type', ['buyer', 'report_product'])
+                    ->orWhere(function ($fallbackQuery) {
+                        $fallbackQuery->whereNull('complaint_type')
+                            ->whereHas('user', function ($userQuery) {
+                                $userQuery->whereIn('role', [1, 3]);
+                            });
+                    });
+            })
+            ->latest()
+            ->get()
+            ->map(function (Complaint $complaint) use ($forwardedIds) {
+                $complaint->complaint_group = 'buyer';
+                $complaint->is_forwarded = in_array($complaint->id, $forwardedIds, true);
+
+                // Get the complained store/seller name
+                $targetStore = null;
+                if ($complaint->reportedProduct && $complaint->reportedProduct->user) {
+                    $targetStore = $complaint->reportedProduct->user->nama_toko ?: $complaint->reportedProduct->user->name;
+                } elseif ($complaint->order && $complaint->order->product && $complaint->order->product->user) {
+                    $targetStore = $complaint->order->product->user->nama_toko ?: $complaint->order->product->user->name;
+                } elseif ($complaint->reportedUser) {
+                    $targetStore = $complaint->reportedUser->nama_toko ?: $complaint->reportedUser->name;
+                }
+                $complaint->complained_store = $targetStore ?: '-';
+
+                return $complaint;
+            })->values();
+
+        $sellers = User::query()
+            ->where('role', 2)
+            ->select('id', 'name', 'nama_toko')
+            ->orderBy('nama_toko')
+            ->orderBy('name')
+            ->get();
+
+        return Inertia::render('Admin/BuyerComplaints', [
+            'buyerComplaints' => $buyerComplaints,
+            'sellers' => $sellers,
+        ]);
+    }
+
+    public function sellerComplaints()
+    {
+        Complaint::where(function ($query) {
+                $query->where('complaint_type', 'seller')
+                    ->orWhere(function ($fallbackQuery) {
+                        $fallbackQuery->whereNull('complaint_type')
+                            ->whereHas('user', function ($userQuery) {
+                                $userQuery->where('role', 2);
+                            });
+                    });
+            })
+            ->whereNull('forwarded_from_id')
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
+
+        $sellerComplaints = Complaint::with(['user', 'order', 'forwardedFrom'])
+            ->where(function ($query) {
+                $query->where('complaint_type', 'seller')
+                    ->orWhere(function ($fallbackQuery) {
+                        $fallbackQuery->whereNull('complaint_type')
+                            ->whereHas('user', function ($userQuery) {
+                                $userQuery->where('role', 2);
+                            });
+                    });
+            })
+            ->whereNull('forwarded_from_id')
+            ->latest()
+            ->get()
+            ->map(function (Complaint $complaint) {
+                $complaint->complaint_group = 'seller';
+
+                return $complaint;
+            })->values();
+
+        return Inertia::render('Admin/SellerComplaints', [
+            'sellerComplaints' => $sellerComplaints,
+        ]);
+    }
+
     public function complaints()
     {
         $buyerComplaints = Complaint::with(['user', 'order', 'forwardedFrom'])
@@ -148,8 +244,8 @@ class AdminController extends Controller
         $group = $complaint->complaint_type
             ?? (($complaint->user?->role === 2) ? 'seller' : 'buyer');
 
-        if ($group !== 'seller') {
-            return back()->with('error', 'Balasan admin hanya tersedia untuk tabel komplain penjual.');
+        if ($group !== 'seller' && $group !== 'appeal_account') {
+            return back()->with('error', 'Balasan admin hanya tersedia untuk komplain penjual atau banding akun.');
         }
 
         $complaint->update([
@@ -301,8 +397,10 @@ class AdminController extends Controller
         return back()->with('success', 'Produk berhasil diaktifkan kembali');
     }
 
-    public function appeals()
+    public function productAppeals()
     {
+        \App\Models\ProductAppeal::where('is_read', false)->update(['is_read' => true]);
+
         $appeals = \App\Models\ProductAppeal::with(['product.user', 'user'])
             ->latest()
             ->get()
@@ -320,7 +418,34 @@ class AdminController extends Controller
                 ];
             });
 
-        return Inertia::render('Admin/Appeals', [
+        return Inertia::render('Admin/ProductAppeals', [
+            'appeals' => $appeals,
+        ]);
+    }
+
+    public function accountAppeals()
+    {
+        Complaint::where('complaint_type', 'appeal_account')->where('is_read', false)->update(['is_read' => true]);
+
+        $appeals = \App\Models\Complaint::with('user')
+            ->where('complaint_type', 'appeal_account')
+            ->latest()
+            ->get()
+            ->map(function ($appeal) {
+                return [
+                    'id' => $appeal->id,
+                    'user_id' => $appeal->user_id,
+                    'toko_name' => $appeal->user?->nama_toko ?: $appeal->user?->name ?: $appeal->sender_name ?: '-',
+                    'email' => $appeal->user?->email ?? '-',
+                    'alasan_banding' => $appeal->issue_description,
+                    'masukan' => $appeal->input,
+                    'admin_reply' => $appeal->admin_reply,
+                    'is_active' => (bool) ($appeal->user?->is_active ?? false),
+                    'created_at' => $appeal->created_at ? $appeal->created_at->format('d M Y H:i') : '-',
+                ];
+            });
+
+        return Inertia::render('Admin/AccountAppeals', [
             'appeals' => $appeals,
         ]);
     }

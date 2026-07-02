@@ -412,7 +412,7 @@ v-for="order in visibleOrders"
 <div class="flex items-center justify-end gap-2" @click.stop>
 
 <button
-  v-if="order.payment_proof && order.payment_status !== 'paid'"
+  v-if="activeView === 'diterima' && order.payment_proof && order.payment_status !== 'paid'"
   @click="confirmPayment(order)"
   class="rounded-md bg-purple-600 px-3 py-1 text-white hover:bg-purple-700 text-xs font-semibold"
 >
@@ -443,9 +443,9 @@ class="rounded-md bg-slate-700 px-3 py-1 text-white hover:bg-slate-800"
 Detail
 </button>
 
-<!-- Tombol chat untuk pesanan yang diterima (hanya tampilan 'diterima') -->
+<!-- Tombol chat untuk pesanan baru & diterima -->
 <a
-  v-if="activeView === 'diterima' && order.buyer"
+  v-if="(activeView === 'diterima' || activeView === 'baru') && order.buyer"
   :href="route('chat.start', { seller: order.buyer.id, order_id: order.id })"
   class="rounded-md bg-blue-600 px-3 py-1 text-white hover:bg-blue-700"
 >
@@ -507,7 +507,7 @@ Detail
             Lihat Bukti Transfer
           </button>
         </div>
-        <div v-if="selectedOrder.payment_status !== 'paid'">
+        <div v-if="selectedOrder.review_status === 'diterima' && selectedOrder.payment_status !== 'paid'">
           <button
             type="button"
             @click="confirmPayment(selectedOrder)"

@@ -9,6 +9,107 @@ const reviews = computed(() => usePage().props.reviews || [])
 const isAuthenticated = computed(() => !!usePage().props.auth?.user)
 const chatSellerUrl = computed(() => route('chat.start', { seller: produk.user_id, product_id: produk.id }))
 
+const activeImageIndex = ref(0)
+const currentImage = computed(() => {
+  if (produk.images && produk.images.length > 0) {
+    return produk.images[activeImageIndex.value]
+  }
+  return produk.image || 'https://via.placeholder.com/500x400'
+})
+
+const prevImage = () => {
+  if (produk.images && produk.images.length > 0) {
+    const len = produk.images.length
+    activeImageIndex.value = (activeImageIndex.value - 1 + len) % len
+  }
+}
+
+const nextImage = () => {
+  if (produk.images && produk.images.length > 0) {
+    const len = produk.images.length
+    activeImageIndex.value = (activeImageIndex.value + 1) % len
+  }
+}
+
+const selectedVariations = ref({})
+if (produk.variations && produk.variations.length > 0) {
+  produk.variations.forEach(v => {
+    selectedVariations.value[v.name] = ''
+  })
+}
+
+const showPurchaseModal = ref(false)
+const selectedQty = ref(1)
+const purchaseActionType = ref('cart')
+
+const openPurchaseModal = (action) => {
+  if (!isAuthenticated.value) {
+    router.get(route('login'))
+    return
+  }
+  purchaseActionType.value = action
+  selectedQty.value = 1
+  showPurchaseModal.value = true
+}
+
+const changeModalQty = (amount) => {
+  const newQty = selectedQty.value + amount
+  if (newQty >= 1 && newQty <= produk.stok) {
+    selectedQty.value = newQty
+  }
+}
+
+const validateModalQtyInput = () => {
+  if (selectedQty.value < 1) {
+    selectedQty.value = 1
+  } else if (selectedQty.value > produk.stok) {
+    selectedQty.value = produk.stok
+    showNotif('Jumlah melebihi stok yang tersedia', 'error')
+  }
+}
+
+const purchaseTotalPrice = computed(() => {
+  return produk.harga * selectedQty.value
+})
+
+const submitPurchaseAction = () => {
+  if (produk.variations && produk.variations.length > 0) {
+    for (const v of produk.variations) {
+      if (!selectedVariations.value[v.name]) {
+        showNotif(`Pilih ${v.name} terlebih dahulu`, 'error')
+        return
+      }
+    }
+  }
+
+  if (purchaseActionType.value === 'cart') {
+    router.post('/keranjang', {
+      product_id: produk.id,
+      qty: selectedQty.value,
+      variations: selectedVariations.value
+    }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        showPurchaseModal.value = false
+        showNotif('Produk berhasil ditambahkan ke keranjang', 'success')
+      },
+      onError: (err) => {
+        showNotif(err.error || 'Gagal menambahkan ke keranjang', 'error')
+      }
+    })
+  } else {
+    router.post(route('checkout.prepare.product'), {
+      product_id: produk.id,
+      qty: selectedQty.value,
+      variations: selectedVariations.value
+    }, {
+      onError: (err) => {
+        showNotif(err.error || 'Gagal melanjutkan ke checkout', 'error')
+      }
+    })
+  }
+}
+
 // Notifikasi
 const notif = ref(null)
 
@@ -147,10 +248,47 @@ function submitReport() {
         
         <!-- Gambar Produk -->
         <div>
-          <img
-            :src="produk.image || 'https://via.placeholder.com/500x400'"
-            class="w-full h-[400px] object-cover rounded-xl shadow"
-          />
+          <!-- Large Main Image Wrapper -->
+          <div class="relative w-full h-[400px] rounded-2xl overflow-hidden border border-gray-200 shadow-sm group bg-gray-50">
+            <transition name="fade" mode="out-in">
+              <img
+                :key="activeImageIndex"
+                :src="currentImage"
+                class="w-full h-full object-cover transition duration-300"
+              />
+            </transition>
+            
+            <!-- Next and Previous buttons -->
+            <div v-if="produk.images && produk.images.length > 1" class="absolute inset-0 flex items-center justify-between px-4 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                type="button" 
+                @click="prevImage"
+                class="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow hover:shadow-md transition cursor-pointer font-bold text-lg select-none"
+              >
+                &lsaquo;
+              </button>
+              <button 
+                type="button" 
+                @click="nextImage"
+                class="w-10 h-10 rounded-full bg-white/90 hover:bg-white text-gray-800 flex items-center justify-center shadow hover:shadow-md transition cursor-pointer font-bold text-lg select-none"
+              >
+                &rsaquo;
+              </button>
+            </div>
+          </div>
+          
+          <!-- Thumbnail row -->
+          <div v-if="produk.images && produk.images.length > 1" class="flex gap-3 mt-3 overflow-x-auto pb-1">
+            <button
+              v-for="(img, idx) in produk.images"
+              :key="idx"
+              @click="activeImageIndex = idx"
+              class="w-20 h-20 rounded-xl overflow-hidden border-2 flex-shrink-0 transition-all duration-200"
+              :class="activeImageIndex === idx ? 'border-indigo-600 ring-2 ring-indigo-100' : 'border-gray-200 hover:border-gray-300'"
+            >
+              <img :src="img" class="w-full h-full object-cover" />
+            </button>
+          </div>
         </div>
 
         <!-- Detail Produk -->
@@ -211,6 +349,8 @@ function submitReport() {
             <p v-if="produk.ukuran">Ukuran: {{ produk.ukuran }}</p>
           </div>
 
+
+
           <!-- Deskripsi -->
           <div>
             <h3 class="font-semibold mb-1 text-gray-800">Deskripsi</h3>
@@ -219,18 +359,18 @@ function submitReport() {
             </p>
           </div>
 
+
           <!-- Tombol -->
           <div class="flex gap-4 pt-4">
-            
             <button
-              @click="tambahKeranjang"
+              @click="openPurchaseModal('cart')"
               class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg font-medium flex-1 cursor-pointer"
             >
               + Keranjang
             </button>
 
             <button
-              @click="beliSekarang"
+              @click="openPurchaseModal('buy')"
               class="border border-gray-300 px-4 py-2 rounded-lg flex-1 hover:bg-gray-100 cursor-pointer"
             >
               Beli Sekarang
@@ -244,7 +384,6 @@ function submitReport() {
             >
               💬 Chat Penjual
             </a>
-
           </div>
 
         </div>
@@ -379,13 +518,124 @@ function submitReport() {
               </button>
             </div>
           </form>
+        </div>
+      </div>
+    </transition>
 
+    <!-- 🛒 PURCHASE POPUP MODAL (MARKETPLACE-STYLE) -->
+    <transition name="fade">
+      <div 
+        v-if="showPurchaseModal" 
+        @click.self="showPurchaseModal = false"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      >
+        <!-- Scale transition container -->
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-gray-100 transition-all duration-300 transform scale-100 relative">
+          <!-- Close Button -->
+          <button @click="showPurchaseModal = false" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          <div class="p-6 space-y-6">
+            <!-- Product Header Info -->
+            <div class="flex gap-4">
+              <img :src="currentImage" alt="Produk" class="w-24 h-24 object-cover rounded-xl border border-gray-200 shadow-xs" />
+              <div class="flex-1 flex flex-col justify-center text-left">
+                <h4 class="font-bold text-gray-800 text-base line-clamp-1">{{ produk.nama }}</h4>
+                <p class="text-xl font-extrabold text-blue-600 mt-1">Rp{{ Number(produk.harga).toLocaleString('id-ID') }}</p>
+                <p class="text-xs text-gray-400 mt-0.5 font-semibold">Stok: {{ produk.stok }} {{ produk.satuan || '' }}</p>
+              </div>
+            </div>
+
+            <!-- Variations List (if any) -->
+            <div v-if="produk.variations && produk.variations.length > 0" class="space-y-4 border-t border-gray-100 pt-4 text-left">
+              <div v-for="(v, idx) in produk.variations" :key="idx" class="space-y-2">
+                <span class="text-xs font-bold text-gray-400 uppercase tracking-wider block">{{ v.name }}</span>
+                <div class="flex gap-2 flex-wrap">
+                  <button 
+                    v-for="(opt, optIdx) in v.options" 
+                    :key="optIdx"
+                    type="button"
+                    @click="selectedVariations[v.name] = opt"
+                    class="text-xs font-semibold px-4 py-2 rounded-xl border transition cursor-pointer"
+                    :class="selectedVariations[v.name] === opt 
+                      ? 'bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 shadow-sm' 
+                      : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50/50'"
+                  >
+                    {{ opt }}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quantity Settings -->
+            <div class="flex items-center justify-between border-t border-gray-100 pt-4">
+              <span class="text-sm font-bold text-gray-700">Jumlah</span>
+              <div class="flex items-center gap-1">
+                <!-- Minus Button -->
+                <button 
+                  type="button" 
+                  @click="changeModalQty(-1)" 
+                  :disabled="selectedQty <= 1"
+                  class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition font-bold select-none cursor-pointer text-sm"
+                >
+                  &minus;
+                </button>
+                
+                <!-- Number Input -->
+                <input 
+                  type="number" 
+                  v-model.number="selectedQty" 
+                  @input="validateModalQtyInput"
+                  class="w-12 h-8 border border-gray-200 rounded-lg text-center text-sm font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+
+                <!-- Plus Button -->
+                <button 
+                  type="button" 
+                  @click="changeModalQty(1)" 
+                  :disabled="selectedQty >= produk.stok"
+                  class="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 hover:text-gray-800 disabled:opacity-50 disabled:bg-gray-100 disabled:cursor-not-allowed transition font-bold select-none cursor-pointer text-sm"
+                >
+                  &plus;
+                </button>
+              </div>
+            </div>
+
+            <!-- Total Price Display -->
+            <div class="flex items-center justify-between border-t border-gray-100 pt-4">
+              <span class="text-sm font-bold text-gray-700">Total</span>
+              <span class="text-xl font-extrabold text-indigo-600">Rp{{ Number(purchaseTotalPrice).toLocaleString('id-ID') }}</span>
+            </div>
+
+            <!-- Footer Buttons -->
+            <div class="flex gap-3 pt-2">
+              <button 
+                type="button" 
+                @click="purchaseActionType = 'cart'; submitPurchaseAction()"
+                class="flex-1 bg-yellow-400 hover:bg-yellow-500 text-white font-bold py-2.5 rounded-xl text-sm shadow-sm transition cursor-pointer"
+              >
+                + Keranjang
+              </button>
+              <button 
+                type="button" 
+                @click="purchaseActionType = 'buy'; submitPurchaseAction()"
+                class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 rounded-xl text-sm shadow-sm transition cursor-pointer"
+              >
+                Beli Sekarang
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </transition>
 
   </div>
 </template>
+
+
 
 <style scoped>
 .fade-enter-active,

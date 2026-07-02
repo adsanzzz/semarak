@@ -17,6 +17,11 @@ class ProductAppeal extends Model
         'bukti_pendukung',
         'admin_reply',
         'status',
+        'is_read',
+    ];
+
+    protected $casts = [
+        'is_read' => 'boolean',
     ];
 
     public function product()

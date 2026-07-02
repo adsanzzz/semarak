@@ -4,7 +4,7 @@ import InputLabel from '@/Components/InputLabel.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import TextInput from '@/Components/TextInput.vue';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 
 defineProps({
     mustVerifyEmail: {
@@ -29,18 +29,39 @@ const form = useForm({
     sosmed_instagram: user.sosmed_instagram || '',
     sosmed_tiktok: user.sosmed_tiktok || '',
     qris_image: null,
-    latitude: user.latitude || '',
-    longitude: user.longitude || '',
+    location_map: user.location_map || '',
 });
 
 function useCurrentStoreLocation() {
     if (!navigator.geolocation) return
 
     navigator.geolocation.getCurrentPosition((position) => {
-        form.latitude = position.coords.latitude
-        form.longitude = position.coords.longitude
+        const { latitude, longitude } = position.coords
+        form.location_map = `https://maps.google.com/?q=${latitude},${longitude}`
     })
 }
+
+watch(() => form.location_map, async (newVal) => {
+    if (!newVal) return
+    if (newVal.includes('maps.app.goo.gl') || newVal.includes('goo.gl')) {
+        try {
+            const res = await fetch(route('resolve-maps-link'), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                },
+                body: JSON.stringify({ url: newVal })
+            })
+            const data = await res.json()
+            if (data.success) {
+                form.location_map = `${data.lat},${data.lng}`
+            }
+        } catch (err) {
+            console.error(err)
+        }
+    }
+})
 
 const sertifikasiPreview = ref(user.sertifikasi_file ? `/storage/${user.sertifikasi_file}` : null);
 const qrisPreview = ref(user.qris_image ? `/storage/${user.qris_image}` : null);
@@ -244,40 +265,27 @@ function submitProfile() {
 
                 <div class="border-t pt-4 mt-4 space-y-4">
                     <div>
-                        <h4 class="text-sm font-semibold text-gray-800">Koordinat Lokasi Toko (Untuk Pengiriman)</h4>
-                        <p class="text-xs text-gray-500">Koordinat ini digunakan untuk membatasi jarak pengantar kurir maksimal 5km.</p>
+                        <h4 class="text-sm font-semibold text-gray-800">Lokasi Toko (Link Google Maps / Koordinat)</h4>
+                        <p class="text-xs text-gray-500">Gunakan lokasi saat ini atau paste link Google Maps untuk membatasi jarak pengantar kurir maksimal 5km.</p>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <InputLabel for="latitude" value="Latitude" />
-                            <TextInput
-                                id="latitude"
-                                type="text"
-                                class="mt-1 block w-full"
-                                v-model="form.latitude"
-                                placeholder="Contoh: -7.561234"
-                            />
-                            <InputError class="mt-2" :message="form.errors.latitude" />
-                        </div>
-                        <div>
-                            <InputLabel for="longitude" value="Longitude" />
-                            <TextInput
-                                id="longitude"
-                                type="text"
-                                class="mt-1 block w-full"
-                                v-model="form.longitude"
-                                placeholder="Contoh: 110.831234"
-                            />
-                            <InputError class="mt-2" :message="form.errors.longitude" />
-                        </div>
+                    <div>
+                        <InputLabel for="location_map" value="Link Google Maps / Koordinat" />
+                        <TextInput
+                            id="location_map"
+                            type="text"
+                            class="mt-1 block w-full bg-white"
+                            v-model="form.location_map"
+                            placeholder="Contoh: https://maps.google.com/?q=-7.5612,110.8491 atau -7.5612,110.8491"
+                        />
+                        <InputError class="mt-2" :message="form.errors.location_map" />
                     </div>
 
                     <div>
                         <button
                             type="button"
                             @click="useCurrentStoreLocation"
-                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                            class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition cursor-pointer"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
                                 <path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd" />

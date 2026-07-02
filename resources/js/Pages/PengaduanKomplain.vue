@@ -21,6 +21,7 @@ const form = reactive({
   name_or_store: '',
   issue_description: '',
   input: '',
+  type: 'komplain',
 })
 
 const openForm = () => {
@@ -32,6 +33,7 @@ const closeForm = () => {
   form.name_or_store = ''
   form.issue_description = ''
   form.input = ''
+  form.type = 'komplain'
 }
 
 const submitPengaduan = () => {
@@ -83,6 +85,17 @@ const submitPengaduan = () => {
               <h2 class="text-lg font-semibold text-gray-900 mb-4">Tambah Pengaduan, Komplain, atau Banding</h2>
 
               <div class="grid gap-4">
+                <label v-if="isSeller" class="block">
+                  <span class="text-sm font-medium text-gray-700">Tipe Pengajuan</span>
+                  <select
+                    v-model="form.type"
+                    class="mt-2 w-full rounded-xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100 cursor-pointer"
+                  >
+                    <option value="komplain">Pengaduan & Komplain Umum</option>
+                    <option value="appeal_account">Banding Penonaktifan Akun Toko</option>
+                  </select>
+                </label>
+
                 <label class="block">
                   <span class="text-sm font-medium text-gray-700">Nama / Nama Toko</span>
                   <input

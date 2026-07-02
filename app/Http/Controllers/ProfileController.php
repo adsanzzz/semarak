@@ -32,6 +32,38 @@ class ProfileController extends Controller
     {
         $validated = $request->validated();
 
+        $locationMap = $validated['location_map'] ?? null;
+        if ($locationMap) {
+            // Resolve short links if present
+            if (str_contains($locationMap, 'maps.app.goo.gl') || str_contains($locationMap, 'goo.gl')) {
+                $ch = curl_init();
+                curl_setopt($ch, CURLOPT_URL, $locationMap);
+                curl_setopt($ch, CURLOPT_HEADER, true);
+                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+                curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+                curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+                $response = curl_exec($ch);
+                curl_close($ch);
+
+                if (preg_match('/^Location:\s*(.*)$/mi', $response, $matches)) {
+                    $locationMap = trim($matches[1]);
+                }
+            }
+
+            $lat = null;
+            $lng = null;
+            if (preg_match('/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/', $locationMap, $match)) {
+                $lat = (float) $match[1];
+                $lng = (float) $match[2];
+            }
+
+            if ($lat !== null && $lng !== null) {
+                $validated['latitude'] = $lat;
+                $validated['longitude'] = $lng;
+            }
+        }
+
         if ($request->hasFile('sertifikasi_file')) {
             if ($request->user()->sertifikasi_file) {
                 Storage::disk('public')->delete($request->user()->sertifikasi_file);

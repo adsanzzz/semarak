@@ -7,6 +7,7 @@ import { ref, computed } from 'vue'
 const props = defineProps({
   products: Object,
   categories: Array,
+  satuans: Array,
 })
 
 /* 🔔 Notifikasi */
@@ -46,6 +47,25 @@ const filteredEditSubCategories = computed(() => {
 ========================= */
 
 const showForm = ref(false)
+const addImagePreviews = ref([])
+const editImagePreviews = ref([])
+const addFileInput = ref(null)
+const editFileInput = ref(null)
+
+const activeCarouselIndices = ref({})
+const getProductImageIndex = (produk) => {
+  return activeCarouselIndices.value[produk.id] || 0
+}
+const prevCarouselImg = (produk) => {
+  const current = activeCarouselIndices.value[produk.id] || 0
+  const len = produk.images_url.length
+  activeCarouselIndices.value[produk.id] = (current - 1 + len) % len
+}
+const nextCarouselImg = (produk) => {
+  const current = activeCarouselIndices.value[produk.id] || 0
+  const len = produk.images_url.length
+  activeCarouselIndices.value[produk.id] = (current + 1) % len
+}
 
 const form = useForm({
   nama: '',
@@ -54,19 +74,28 @@ const form = useForm({
   kategori_id: '',
   sub_kategori_id: '',
   deskripsi: '',
-  image: null,
+  images: [],
   warna: '',
   ukuran: '',
   berat: '',
+  satuan: '',
+  variations: [],
 })
 
 function openForm() {
   form.reset()
+  addImagePreviews.value = []
   showForm.value = true
 }
 
 function closeForm() {
   showForm.value = false
+  addImagePreviews.value.forEach(p => {
+    if (p.isBlob) {
+      URL.revokeObjectURL(p.url)
+    }
+  })
+  addImagePreviews.value = []
 }
 
 function tambahProduk() {
@@ -80,6 +109,63 @@ function tambahProduk() {
       router.reload({ only: ['products'] })
     }
   })
+}
+
+const triggerFileInput = (isEdit = false) => {
+  const inputEl = isEdit ? editFileInput.value : addFileInput.value
+  if (inputEl) {
+    inputEl.click()
+  }
+}
+
+const handleImagesAdded = (e, isEdit = false) => {
+  const targetForm = isEdit ? editForm : form
+  const previewsRef = isEdit ? editImagePreviews : addImagePreviews
+  const files = Array.from(e.target.files)
+
+  const currentCount = isEdit 
+    ? (editForm.existing_images.length + editForm.images.length)
+    : form.images.length
+
+  const allowedCount = 5 - currentCount
+
+  if (files.length > allowedCount) {
+    alert(`Maksimal 5 gambar diperbolehkan. Tersisa ${allowedCount} slot.`)
+    e.target.value = ''
+    return
+  }
+
+  files.forEach(file => {
+    targetForm.images.push(file)
+    previewsRef.value.push({
+      url: URL.createObjectURL(file),
+      isBlob: true,
+      file: file
+    })
+  })
+
+  e.target.value = ''
+}
+
+const removeImageAtIndex = (idx, isEdit = false) => {
+  const targetForm = isEdit ? editForm : form
+  const previewsRef = isEdit ? editImagePreviews : addImagePreviews
+  const targetPreview = previewsRef.value[idx]
+
+  if (targetPreview.isBlob) {
+    URL.revokeObjectURL(targetPreview.url)
+    const fileIndex = targetForm.images.indexOf(targetPreview.file)
+    if (fileIndex !== -1) {
+      targetForm.images.splice(fileIndex, 1)
+    }
+  } else {
+    const pathIndex = targetForm.existing_images.indexOf(targetPreview.path)
+    if (pathIndex !== -1) {
+      targetForm.existing_images.splice(pathIndex, 1)
+    }
+  }
+
+  previewsRef.value.splice(idx, 1)
 }
 
 /* =========================
@@ -98,10 +184,13 @@ const editForm = useForm({
   kategori_id: '',
   sub_kategori_id: '',
   deskripsi: '',
-  image: null,
+  images: [],
+  existing_images: [],
   warna: '',
   ukuran: '',
   berat: '',
+  satuan: '',
+  variations: [],
 })
 
 function startEditRow(produk) {
@@ -116,13 +205,67 @@ function startEditRow(produk) {
   editForm.berat = produk.berat
   editForm.warna = produk.warna
   editForm.ukuran = produk.ukuran
-  editForm.image = null
+  editForm.satuan = produk.satuan || ''
+  editForm.images = []
+  editForm.existing_images = [...(produk.images || [])]
+  editForm.variations = (produk.variations || []).map(v => ({
+    name: v.name,
+    options: [...v.options],
+    tempOption: ''
+  }))
 
+  editImagePreviews.value = (produk.images || []).map((path, index) => {
+    const fullUrl = (produk.images_url && produk.images_url[index]) ? produk.images_url[index] : `/storage/${path}`
+    return {
+      url: fullUrl,
+      isBlob: false,
+      path: path
+    }
+  })
+ 
   showEditForm.value = true
+}
+
+// handleEditImagesChange removed since unified handleImagesAdded is used
+
+const addVariation = (isEdit = false) => {
+  const target = isEdit ? editForm : form
+  if (!target.variations) {
+    target.variations = []
+  }
+  target.variations.push({
+    name: '',
+    options: [],
+    tempOption: ''
+  })
+}
+
+const removeVariation = (index, isEdit = false) => {
+  const target = isEdit ? editForm : form
+  target.variations.splice(index, 1)
+}
+
+const addOption = (variation) => {
+  if (variation.tempOption.trim()) {
+    if (!variation.options.includes(variation.tempOption.trim())) {
+      variation.options.push(variation.tempOption.trim())
+    }
+    variation.tempOption = ''
+  }
+}
+
+const removeOption = (variation, optionIndex) => {
+  variation.options.splice(optionIndex, 1)
 }
 
 function closeEditForm() {
   showEditForm.value = false
+  editImagePreviews.value.forEach(p => {
+    if (p.isBlob) {
+      URL.revokeObjectURL(p.url)
+    }
+  })
+  editImagePreviews.value = []
 }
 
 function updateProduk() {
@@ -301,6 +444,7 @@ function clickAcknowledgeAppeal(appealId) {
             <th class="px-6 py-4">Nama Produk</th>
             <th class="px-6 py-4">Deskripsi</th>
             <th class="px-6 py-4">Kategori / Sub</th>
+            <th class="px-6 py-4">Variasi</th>
             <th class="px-6 py-4 w-32">Harga</th>
             <th class="px-6 py-4 w-24 text-center">Stok</th>
             <th class="px-6 py-4 w-40 text-center">Aksi</th>
@@ -310,12 +454,46 @@ function clickAcknowledgeAppeal(appealId) {
           <tr v-for="produk in products.data" :key="produk.id" class="hover:bg-gray-50/50 transition relative">
             <!-- Gambar -->
             <td class="px-6 py-4 whitespace-nowrap text-center">
-              <img 
-                :src="produk.image_url || 'https://via.placeholder.com/150'" 
-                class="w-12 h-12 object-cover rounded-lg border border-gray-200 shadow-xs mx-auto transition"
-                :class="{'opacity-35 select-none': shouldShowOverlay(produk)}"
-                alt="Gambar Produk"
-              />
+              <div v-if="produk.images_url && produk.images_url.length > 1" class="relative w-12 h-12 mx-auto group">
+                <div class="w-full h-full rounded-lg overflow-hidden border border-gray-200 shadow-xs relative">
+                  <img 
+                    :src="produk.images_url[getProductImageIndex(produk)]" 
+                    class="w-full h-full object-cover transition-all duration-300"
+                    alt="Gambar Produk"
+                  />
+                </div>
+                
+                <button 
+                  type="button" 
+                  @click.stop="prevCarouselImg(produk)"
+                  class="absolute left-0 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-r p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75 cursor-pointer z-10 text-[10px] select-none font-bold"
+                >
+                  &lsaquo;
+                </button>
+                <button 
+                  type="button" 
+                  @click.stop="nextCarouselImg(produk)"
+                  class="absolute right-0 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-l p-1 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/75 cursor-pointer z-10 text-[10px] select-none font-bold"
+                >
+                  &rsaquo;
+                </button>
+                
+                <div class="absolute -bottom-1.5 left-0 right-0 flex justify-center gap-0.5 z-10">
+                  <span 
+                    v-for="(img, imgIdx) in produk.images_url" 
+                    :key="imgIdx"
+                    class="w-1 h-1 rounded-full transition-all"
+                    :class="getProductImageIndex(produk) === imgIdx ? 'bg-indigo-600 w-1.5' : 'bg-gray-300'"
+                  ></span>
+                </div>
+              </div>
+              <div v-else class="relative w-12 h-12 mx-auto">
+                <img 
+                  :src="produk.image_url || 'https://via.placeholder.com/150'" 
+                  class="w-full h-full object-cover rounded-lg border border-gray-200 shadow-xs mx-auto transition"
+                  alt="Gambar Produk"
+                />
+              </div>
 
               <!-- Overlay absolute div spanning the entire TR, placed inside static TD -->
               <div v-if="shouldShowOverlay(produk)" class="absolute inset-0 bg-white/75 z-10 flex items-center justify-center gap-4 px-6 pointer-events-auto">
@@ -391,6 +569,22 @@ function clickAcknowledgeAppeal(appealId) {
                 ↳ {{ produk.sub_category.nama_subkategori }}
               </div>
             </td>
+            <!-- Variasi -->
+            <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4 whitespace-nowrap">
+              <div v-if="produk.variations && produk.variations.length > 0" class="space-y-2 text-xs">
+                <div v-for="(v, idx) in produk.variations" :key="idx" class="text-left">
+                  <span class="font-bold text-gray-400 uppercase tracking-wider block mb-0.5 text-[10px]">{{ v.name }}</span>
+                  <ul class="list-disc list-inside text-gray-500 pl-1 text-[11px] space-y-0.5">
+                    <li v-for="opt in v.options" :key="opt" class="list-none flex items-center gap-1 font-semibold text-gray-600">
+                      <span class="text-gray-400 text-[10px] font-bold">&bull;</span> {{ opt }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              <span v-else class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-gray-100 text-gray-400 border border-gray-200">
+                Tidak ada variasi
+              </span>
+            </td>
             <!-- Harga -->
             <td :class="{'opacity-50 select-none pointer-events-none': shouldShowOverlay(produk)}" class="px-6 py-4 whitespace-nowrap font-semibold text-gray-900">
               Rp{{ Number(produk.harga).toLocaleString('id-ID') }}
@@ -401,7 +595,7 @@ function clickAcknowledgeAppeal(appealId) {
                             produk.stok > 10 
                               ? 'bg-emerald-50 text-emerald-700 border-emerald-100' 
                               : (produk.stok > 0 ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-red-50 text-red-700 border-red-100')]">
-                {{ produk.stok }}
+                {{ produk.stok }}{{ produk.satuan ? produk.satuan.toLowerCase() : '' }}
               </span>
             </td>
             <!-- Aksi -->
@@ -514,7 +708,7 @@ function clickAcknowledgeAppeal(appealId) {
             <input v-model="form.nama" placeholder="Masukkan nama produk" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">Harga (Rp)</label>
               <input v-model="form.harga" type="number" placeholder="Contoh: 15000" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
@@ -522,6 +716,15 @@ function clickAcknowledgeAppeal(appealId) {
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">Stok</label>
               <input v-model="form.stok" type="number" placeholder="Contoh: 50" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-semibold text-gray-700">Satuan</label>
+              <select v-model="form.satuan" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                <option value="">Pilih Satuan</option>
+                <option v-for="unit in satuans" :key="unit.id" :value="unit.nama_satuan">
+                  {{ unit.nama_satuan }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -551,9 +754,102 @@ function clickAcknowledgeAppeal(appealId) {
             <textarea v-model="form.deskripsi" placeholder="Tuliskan spesifikasi dan deskripsi produk..." class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
           </div>
 
+          <!-- 🎨 VARIASI PRODUK -->
+          <div class="space-y-3">
+            <label class="block text-sm font-semibold text-gray-700">Variasi Produk</label>
+            
+            <!-- List of variation cards -->
+            <div v-for="(v, idx) in form.variations" :key="idx" class="bg-gray-50/50 p-4 rounded-xl border border-gray-200 relative space-y-3">
+              <!-- Header & Delete btn -->
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-gray-500">Variasi {{ idx + 1 }}</span>
+                <button type="button" @click="removeVariation(idx, false)" class="text-gray-400 hover:text-red-600 transition cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Input Nama Variasi -->
+              <div>
+                <label class="mb-1 block text-xs font-semibold text-gray-600">Nama Variasi</label>
+                <input v-model="v.name" placeholder="Contoh: Warna, Ukuran, Rasa" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
+              </div>
+
+              <!-- Input Tambah Pilihan -->
+              <div>
+                <label class="mb-1 block text-xs font-semibold text-gray-600">Tambah Pilihan</label>
+                <div class="flex gap-2">
+                  <input v-model="v.tempOption" @keydown.enter.prevent="addOption(v)" placeholder="Contoh: Hitam, S, Manis" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
+                  <button type="button" @click="addOption(v)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center">
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <!-- Badges/Chips list -->
+              <div v-if="v.options.length > 0" class="flex gap-2 flex-wrap pt-1">
+                <span v-for="(opt, optIdx) in v.options" :key="optIdx" class="inline-flex items-center gap-1 bg-gray-200/80 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                  {{ opt }}
+                  <button type="button" @click="removeOption(v, optIdx)" class="text-gray-400 hover:text-gray-700 font-bold transition ml-0.5 text-[10px]">×</button>
+                </span>
+              </div>
+            </div>
+
+            <!-- Add Variation button -->
+            <button type="button" @click="addVariation(false)" class="w-full py-2.5 border-2 border-dashed border-gray-200 hover:border-indigo-500 text-gray-500 hover:text-indigo-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+              + Tambah Variasi
+            </button>
+          </div>
+
           <div>
-            <label class="mb-1 block text-sm font-semibold text-gray-700">Gambar Produk</label>
-            <input type="file" @change="e => form.image = e.target.files[0]" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"/>
+            <label class="mb-1 block text-sm font-semibold text-gray-700">Gambar Produk (Maksimal 5)</label>
+            <!-- Hidden input file -->
+            <input 
+              ref="addFileInput" 
+              type="file" 
+              multiple 
+              @change="e => handleImagesAdded(e, false)" 
+              accept="image/*" 
+              class="hidden"
+            />
+            
+            <!-- Previews grid -->
+            <div class="flex flex-wrap gap-3 items-center mt-2">
+              <div 
+                v-for="(p, idx) in addImagePreviews" 
+                :key="idx" 
+                class="relative w-24 h-24 rounded-2xl overflow-hidden border border-gray-200 shadow-xs group"
+              >
+                <img 
+                  :src="p.url" 
+                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                />
+                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                <button 
+                  type="button" 
+                  @click="removeImageAtIndex(idx, false)" 
+                  class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-700 flex items-center justify-center text-white cursor-pointer shadow-xs transition-colors z-20"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-2.5 h-2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Dashed plus button -->
+              <button 
+                v-if="addImagePreviews.length < 5" 
+                type="button" 
+                @click="triggerFileInput(false)" 
+                class="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-500 hover:bg-indigo-50/20 text-gray-400 hover:text-indigo-600 transition flex flex-col items-center justify-center gap-1 cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span class="text-[10px] font-bold">Tambah</span>
+              </button>
+            </div>
           </div>
 
           <!-- Buttons Footer -->
@@ -595,7 +891,7 @@ function clickAcknowledgeAppeal(appealId) {
             <input v-model="editForm.nama" placeholder="Masukkan nama produk" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
           </div>
 
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-3 gap-4">
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">Harga (Rp)</label>
               <input v-model="editForm.harga" type="number" placeholder="Contoh: 15000" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
@@ -603,6 +899,15 @@ function clickAcknowledgeAppeal(appealId) {
             <div>
               <label class="mb-1 block text-sm font-semibold text-gray-700">Stok</label>
               <input v-model="editForm.stok" type="number" placeholder="Contoh: 50" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-semibold text-gray-700">Satuan</label>
+              <select v-model="editForm.satuan" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition">
+                <option value="">Pilih Satuan</option>
+                <option v-for="unit in satuans" :key="unit.id" :value="unit.nama_satuan">
+                  {{ unit.nama_satuan }}
+                </option>
+              </select>
             </div>
           </div>
 
@@ -632,9 +937,102 @@ function clickAcknowledgeAppeal(appealId) {
             <textarea v-model="editForm.deskripsi" placeholder="Tuliskan spesifikasi dan deskripsi produk..." class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm h-24 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"></textarea>
           </div>
 
+          <!-- 🎨 VARIASI PRODUK -->
+          <div class="space-y-3">
+            <label class="block text-sm font-semibold text-gray-700">Variasi Produk</label>
+            
+            <!-- List of variation cards -->
+            <div v-for="(v, idx) in editForm.variations" :key="idx" class="bg-gray-50/50 p-4 rounded-xl border border-gray-200 relative space-y-3">
+              <!-- Header & Delete btn -->
+              <div class="flex justify-between items-center">
+                <span class="text-xs font-bold text-gray-500">Variasi {{ idx + 1 }}</span>
+                <button type="button" @click="removeVariation(idx, true)" class="text-gray-400 hover:text-red-600 transition cursor-pointer">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Input Nama Variasi -->
+              <div>
+                <label class="mb-1 block text-xs font-semibold text-gray-600">Nama Variasi</label>
+                <input v-model="v.name" placeholder="Contoh: Warna, Ukuran, Rasa" class="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
+              </div>
+
+              <!-- Input Tambah Pilihan -->
+              <div>
+                <label class="mb-1 block text-xs font-semibold text-gray-600">Tambah Pilihan</label>
+                <div class="flex gap-2">
+                  <input v-model="v.tempOption" @keydown.enter.prevent="addOption(v)" placeholder="Contoh: Hitam, S, Manis" class="flex-1 border border-gray-200 rounded-xl px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"/>
+                  <button type="button" @click="addOption(v)" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 rounded-xl text-sm transition cursor-pointer flex items-center justify-center">
+                    +
+                  </button>
+                </div>
+              </div>
+
+              <!-- Badges/Chips list -->
+              <div v-if="v.options.length > 0" class="flex gap-2 flex-wrap pt-1">
+                <span v-for="(opt, optIdx) in v.options" :key="optIdx" class="inline-flex items-center gap-1 bg-gray-200/80 text-gray-700 px-2.5 py-1 rounded-lg text-xs font-semibold">
+                  {{ opt }}
+                  <button type="button" @click="removeOption(v, optIdx)" class="text-gray-400 hover:text-gray-700 font-bold transition ml-0.5 text-[10px]">×</button>
+                </span>
+              </div>
+            </div>
+
+            <!-- Add Variation button -->
+            <button type="button" @click="addVariation(true)" class="w-full py-2.5 border-2 border-dashed border-gray-200 hover:border-indigo-500 text-gray-500 hover:text-indigo-600 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer">
+              + Tambah Variasi
+            </button>
+          </div>
+
           <div>
-            <label class="mb-1 block text-sm font-semibold text-gray-700">Gambar Produk</label>
-            <input type="file" @change="e => editForm.image = e.target.files[0]" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer"/>
+            <label class="mb-1 block text-sm font-semibold text-gray-700">Gambar Produk (Maksimal 5)</label>
+            <!-- Hidden input file -->
+            <input 
+              ref="editFileInput" 
+              type="file" 
+              multiple 
+              @change="e => handleImagesAdded(e, true)" 
+              accept="image/*" 
+              class="hidden"
+            />
+            
+            <!-- Previews grid -->
+            <div class="flex flex-wrap gap-3 items-center mt-2">
+              <div 
+                v-for="(p, idx) in editImagePreviews" 
+                :key="idx" 
+                class="relative w-24 h-24 rounded-2xl overflow-hidden border border-gray-200 shadow-xs group"
+              >
+                <img 
+                  :src="p.url" 
+                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110" 
+                />
+                <div class="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                <button 
+                  type="button" 
+                  @click="removeImageAtIndex(idx, true)" 
+                  class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-700 flex items-center justify-center text-white cursor-pointer shadow-xs transition-colors z-20"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-2.5 h-2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <!-- Dashed plus button -->
+              <button 
+                v-if="editImagePreviews.length < 5" 
+                type="button" 
+                @click="triggerFileInput(true)" 
+                class="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 hover:border-indigo-500 hover:bg-indigo-50/20 text-gray-400 hover:text-indigo-600 transition flex flex-col items-center justify-center gap-1 cursor-pointer"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-6 h-6">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                <span class="text-[10px] font-bold">Tambah</span>
+              </button>
+            </div>
           </div>
 
           <!-- Buttons Footer -->

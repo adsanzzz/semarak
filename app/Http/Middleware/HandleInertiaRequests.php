@@ -40,6 +40,60 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
             ],
             'chat_unread_count' => fn () => $this->getUnreadChatCount($request),
+            'pending_appeals_count' => fn () => $request->user() && (int)$request->user()->role === 1
+                ? (int)(\App\Models\ProductAppeal::where('status', 'pending')->where('is_read', false)->count() +
+                       \App\Models\Complaint::where('complaint_type', 'appeal_account')->whereNull('admin_reply')->where('is_read', false)->count())
+                : 0,
+            'new_complaints_count' => fn () => $request->user() && (int)$request->user()->role === 1
+                ? (int)(\App\Models\Complaint::where(function($q) {
+                           $q->whereIn('complaint_type', ['buyer', 'report_product'])
+                             ->orWhere(function($qb) {
+                                 $qb->whereNull('complaint_type')
+                                    ->whereHas('user', function($u) { $u->whereIn('role', [1, 3]); });
+                             });
+                       })->whereNotIn('id', function($sub) {
+                           $sub->select('forwarded_from_id')->from('complaints')->whereNotNull('forwarded_from_id');
+                       })->where('is_read', false)->count() +
+                       \App\Models\Complaint::where(function($q) {
+                           $q->where('complaint_type', 'seller')
+                             ->orWhere(function($qb) {
+                                 $qb->whereNull('complaint_type')
+                                    ->whereHas('user', function($u) { $u->where('role', 2); });
+                             });
+                       })->whereNull('forwarded_from_id')->whereNull('admin_reply')->where('is_read', false)->count())
+                : 0,
+            'reported_accounts_count' => fn () => $request->user() && (int)$request->user()->role === 1
+                ? (int)\App\Models\Complaint::where(function($q) {
+                           $q->where('complaint_type', 'report_account')
+                             ->orWhereNotNull('reported_user_id');
+                       })->where('is_read', false)->count()
+                : 0,
+            'pending_product_appeals_count' => fn () => $request->user() && (int)$request->user()->role === 1
+                ? (int)\App\Models\ProductAppeal::where('status', 'pending')->where('is_read', false)->count()
+                : 0,
+            'pending_account_appeals_count' => fn () => $request->user() && (int)$request->user()->role === 1
+                ? (int)\App\Models\Complaint::where('complaint_type', 'appeal_account')->whereNull('admin_reply')->where('is_read', false)->count()
+                : 0,
+            'new_buyer_complaints_count' => fn () => $request->user() && (int)$request->user()->role === 1
+                ? (int)\App\Models\Complaint::where(function($q) {
+                           $q->whereIn('complaint_type', ['buyer', 'report_product'])
+                             ->orWhere(function($qb) {
+                                 $qb->whereNull('complaint_type')
+                                    ->whereHas('user', function($u) { $u->whereIn('role', [1, 3]); });
+                             });
+                       })->whereNotIn('id', function($sub) {
+                           $sub->select('forwarded_from_id')->from('complaints')->whereNotNull('forwarded_from_id');
+                       })->where('is_read', false)->count()
+                : 0,
+            'new_seller_complaints_count' => fn () => $request->user() && (int)$request->user()->role === 1
+                ? (int)\App\Models\Complaint::where(function($q) {
+                           $q->where('complaint_type', 'seller')
+                             ->orWhere(function($qb) {
+                                 $qb->whereNull('complaint_type')
+                                    ->whereHas('user', function($u) { $u->where('role', 2); });
+                             });
+                       })->whereNull('forwarded_from_id')->whereNull('admin_reply')->where('is_read', false)->count()
+                : 0,
         ];
     }
 

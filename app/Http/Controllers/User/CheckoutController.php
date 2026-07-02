@@ -16,14 +16,20 @@ class CheckoutController extends \App\Http\Controllers\Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'qty' => 'nullable|integer|min:1',
+            'variations' => 'nullable|array',
         ]);
 
         $qty = (int) ($request->qty ?? 1);
+        $variations = $request->input('variations', []);
         $product = Product::with('user')->findOrFail($request->product_id);
+
+        if ($product->stok < $qty) {
+            return back()->with('error', 'Stok tidak mencukupi');
+        }
 
         session([
             'checkout_items' => [
-                $this->mapCheckoutItem($product, $qty),
+                $this->mapCheckoutItem($product, $qty, $variations),
             ],
         ]);
 
@@ -36,25 +42,24 @@ class CheckoutController extends \App\Http\Controllers\Controller
             'items' => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.qty' => 'required|integer|min:1',
+            'items.*.variations' => 'nullable|array',
         ]);
 
-        $requestItems = collect($request->items)->keyBy('product_id');
-        $productIds = $requestItems->keys()->all();
-
-        $products = Product::with('user')
-            ->whereIn('id', $productIds)
-            ->get()
-            ->keyBy('id');
-
         $checkoutItems = [];
-        foreach ($productIds as $productId) {
-            $product = $products->get($productId);
+        foreach ($request->items as $item) {
+            $product = Product::with('user')->find($item['product_id']);
             if (!$product) {
                 continue;
             }
 
-            $qty = (int) ($requestItems->get($productId)['qty'] ?? 1);
-            $checkoutItems[] = $this->mapCheckoutItem($product, $qty);
+            $qty = (int) ($item['qty'] ?? 1);
+            $variations = $item['variations'] ?? [];
+
+            if ($product->stok < $qty) {
+                return redirect()->route('keranjang.index')->with('error', "Stok produk {$product->nama} tidak mencukupi.");
+            }
+
+            $checkoutItems[] = $this->mapCheckoutItem($product, $qty, $variations);
         }
 
         if (empty($checkoutItems)) {
@@ -145,6 +150,7 @@ class CheckoutController extends \App\Http\Controllers\Controller
         'buyer_id' => Auth::id(),
         'user_id' => $sellerId,
         'jumlah' => $item['qty'],
+        'variations' => $item['variations'] ?? null,
         'total_harga' => $item['price'] * $item['qty'],
         'status' => 'pending',
         'shipping_method' => $request->shipping_method,
@@ -217,7 +223,7 @@ class CheckoutController extends \App\Http\Controllers\Controller
         return redirect()->route('user.riwayat-pemesanan')->with('success', 'Pembayaran Berhasil');
     }
 
-    private function mapCheckoutItem(Product $product, int $qty): array
+    private function mapCheckoutItem(Product $product, int $qty, array $variations = []): array
     {
         $seller = $product->user;
 
@@ -228,6 +234,8 @@ class CheckoutController extends \App\Http\Controllers\Controller
             'price' => (int) $product->harga,
             'qty' => $qty,
             'subtotal' => (int) $product->harga * $qty,
+            'variations' => $variations,
+            'stok' => $product->stok,
             'seller' => [
                 'id' => $seller?->id,
                 'name' => $seller?->name,
@@ -274,5 +282,84 @@ class CheckoutController extends \App\Http\Controllers\Controller
         }
 
         return back()->with('success', 'Bukti pembayaran berhasil diupload.');
+    }
+
+    public function updateItem(Request $request)
+    {
+        $request->validate([
+            'product_id' => 'required|exists:products,id',
+            'variations' => 'nullable|array',
+            'qty'        => 'required|integer|min:1',
+        ]);
+
+        $checkoutItems = session('checkout_items', []);
+        $chosenVariations = $request->input('variations', []);
+
+        foreach ($checkoutItems as &$item) {
+            $itemVariations = $item['variations'] ?? [];
+            if ($item['product_id'] == $request->product_id && $itemVariations === $chosenVariations) {
+                $product = Product::find($request->product_id);
+                if ($product && $product->stok < $request->qty) {
+                    return response()->json(['error' => 'Stok tidak mencukupi'], 422);
+                }
+                $item['qty'] = $request->qty;
+                $item['subtotal'] = $item['price'] * $request->qty;
+                break;
+            }
+        }
+
+        session(['checkout_items' => $checkoutItems]);
+
+        $summary = [
+            'total_items' => collect($checkoutItems)->sum('qty'),
+            'total_price' => collect($checkoutItems)->sum(function ($item) {
+                return ((int) $item['price']) * ((int) $item['qty']);
+            }),
+        ];
+
+        return response()->json([
+            'success' => true,
+            'checkoutItems' => $checkoutItems,
+            'summary' => $summary,
+        ]);
+    }
+
+    public function resolveMapsLink(Request $request)
+    {
+        $request->validate([
+            'url' => 'required|string|max:1000',
+        ]);
+
+        $url = $request->url;
+
+        if (str_contains($url, 'maps.app.goo.gl') || str_contains($url, 'goo.gl')) {
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $url);
+            curl_setopt($ch, CURLOPT_HEADER, true);
+            curl_setopt($ch, CURLOPT_FOLLOWLOCATION, false);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+            $response = curl_exec($ch);
+            curl_close($ch);
+
+            if (preg_match('/^Location:\s*(.*)$/mi', $response, $matches)) {
+                $url = trim($matches[1]);
+            }
+        }
+
+        $lat = null;
+        $lng = null;
+        if (preg_match('/(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/', $url, $match)) {
+            $lat = (float) $match[1];
+            $lng = (float) $match[2];
+        }
+
+        return response()->json([
+            'success' => $lat !== null && $lng !== null,
+            'resolved_url' => $url,
+            'lat' => $lat,
+            'lng' => $lng,
+        ]);
     }
 }

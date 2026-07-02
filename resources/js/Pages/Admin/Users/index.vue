@@ -157,33 +157,41 @@ function getInitials(name) {
                 Tidak ada data akun untuk kategori ini.
             </div>
 
-            <!-- Users Grid Cards -->
-            <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div v-for="user in users.data" :key="user.id"
-                    @click="openDetailModal(user)"
-                    class="bg-white border border-gray-100 rounded-2xl shadow-xs hover:shadow-md hover:border-indigo-100 transition-all duration-300 p-5 cursor-pointer flex flex-col justify-between group relative overflow-hidden"
-                >
-                    <div>
-                        <div class="flex items-start gap-4">
-                            <!-- Avatar / Initial -->
-                            <div class="w-12 h-12 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-extrabold text-base flex-shrink-0 group-hover:scale-105 transition">
-                                {{ getInitials(user.name) }}
-                            </div>
-                            
-                            <!-- Text Details -->
-                            <div class="space-y-1 min-w-0 flex-1">
-                                <h4 class="font-bold text-gray-800 text-sm truncate flex items-center gap-1.5" :title="user.name">
-                                    {{ user.name }}
-                                </h4>
-                                <p v-if="type === 'penjual'" class="text-xs font-semibold text-[#0A3551] truncate">
-                                    <span class="text-gray-400 font-normal">Toko:</span> {{ user.nama_toko || '-' }}
-                                </p>
-                                <p class="text-xs text-gray-500 truncate" :title="user.email">{{ user.email }}</p>
-                                
-                                <!-- Status -->
-                                <div class="pt-1">
+            <!-- Users Table -->
+            <div v-else class="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-xs">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left text-gray-500">
+                        <thead class="text-xs text-gray-500 uppercase bg-gray-50 border-b border-gray-100">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 font-bold text-gray-700">No</th>
+                                <th scope="col" class="px-6 py-4 font-bold text-gray-700">Pengguna</th>
+                                <th scope="col" v-if="type === 'penjual'" class="px-6 py-4 font-bold text-gray-700">Nama Toko</th>
+                                <th scope="col" class="px-6 py-4 font-bold text-gray-700">Status</th>
+                                <th scope="col" class="px-6 py-4 font-bold text-gray-700 text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr v-for="(user, index) in users.data" :key="user.id" class="bg-white hover:bg-gray-50/50 transition">
+                                <td class="px-6 py-4 text-gray-700 whitespace-nowrap">
+                                    {{ (users.current_page - 1) * users.per_page + index + 1 }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 flex items-center justify-center font-extrabold text-sm flex-shrink-0">
+                                            {{ getInitials(user.name) }}
+                                        </div>
+                                        <div>
+                                            <div class="font-bold text-gray-800 text-sm">{{ user.name }}</div>
+                                            <div class="text-xs text-gray-400 font-normal">{{ user.email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td v-if="type === 'penjual'" class="px-6 py-4 text-gray-700 whitespace-nowrap font-medium">
+                                    {{ user.nama_toko || '-' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <span 
-                                        class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                                        class="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold border"
                                         :class="[
                                             type === 'penjual' 
                                                 ? (isActive(user) ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100')
@@ -192,52 +200,47 @@ function getInitials(name) {
                                     >
                                         {{ type === 'penjual' ? (isActive(user) ? 'Toko Aktif' : 'Toko Dinonaktifkan') : 'Aktif' }}
                                     </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Card Footer Actions -->
-                    <div class="flex justify-between items-center border-t border-gray-50 pt-4 mt-4" @click.stop>
-                        <button 
-                            @click="openDetailModal(user)"
-                            class="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 inline-flex items-center gap-1 cursor-pointer"
-                        >
-                            Lihat Detail
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-3.5 h-3.5">
-                                <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.22 5.08a.75.75 0 1 1 1.06-1.06l5.5 5.5a.75.75 0 0 1 0 1.06l-5.5 5.5a.75.75 0 1 1-1.06-1.06l4.168-4.17H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
-                            </svg>
-                        </button>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right">
+                                    <div class="flex items-center justify-end gap-2">
+                                        <button 
+                                            @click="openDetailModal(user)"
+                                            class="inline-flex items-center gap-1 border border-indigo-100 text-indigo-600 hover:bg-indigo-50 font-bold px-3 py-1.5 rounded-xl text-xs transition cursor-pointer"
+                                        >
+                                            Detail
+                                        </button>
 
-                        <div class="flex gap-2">
-                            <!-- Penjual Buttons -->
-                            <template v-if="type === 'penjual'">
-                                <button
-                                    v-if="isActive(user)"
-                                    @click="openDeactivateModal(user)"
-                                    class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition cursor-pointer"
-                                >
-                                    Nonaktifkan
-                                </button>
-                                <button
-                                    v-else
-                                    @click="activateSeller(user.id)"
-                                    class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition cursor-pointer"
-                                >
-                                    Aktifkan
-                                </button>
-                            </template>
+                                        <!-- Penjual Buttons -->
+                                        <template v-if="type === 'penjual'">
+                                            <button
+                                                v-if="isActive(user)"
+                                                @click="openDeactivateModal(user)"
+                                                class="inline-flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition cursor-pointer"
+                                            >
+                                                Nonaktifkan
+                                            </button>
+                                            <button
+                                                v-else
+                                                @click="activateSeller(user.id)"
+                                                class="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition cursor-pointer"
+                                            >
+                                                Aktifkan
+                                            </button>
+                                        </template>
 
-                            <!-- Hapus Button -->
-                            <button
-                                v-if="user.id !== $page.props.auth.user.id"
-                                @click="deleteUser(user.id)"
-                                class="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] transition cursor-pointer"
-                            >
-                                Hapus
-                            </button>
-                        </div>
-                    </div>
+                                        <!-- Hapus Button -->
+                                        <button
+                                            v-if="user.id !== $page.props.auth.user.id"
+                                            @click="deleteUser(user.id)"
+                                            class="inline-flex items-center gap-1 bg-red-600 hover:bg-red-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition cursor-pointer"
+                                        >
+                                            Hapus
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
